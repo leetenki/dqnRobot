@@ -14,9 +14,10 @@ var EYE_PARAM = {
 	eyeSight: 650,
 };
 var OBJECT_TYPE = {
-	OBSTACLE: 0,
-	WALL: 1,
-	ITEM: 2
+	NONE: 0,
+	OBSTACLE: 1,
+	WALL: 2,
+	ITEM: 3
 };
 var CAR_INFO = {
 	SPEED: 5,
@@ -49,8 +50,8 @@ function init() {
 
 	// camera
 	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 2000);
-	camera.position.y = 700;
-	camera.position.z = 700;
+	camera.position.y = 400;
+	camera.position.z = 800;
 	camera.lookAt(new THREE.Vector3(0, 0, 0))
 
 	// robot camera
