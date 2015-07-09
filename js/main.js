@@ -1,6 +1,6 @@
 var GRID = {
-	x: 32,  // -8 ~ 7
-	z: 32,  // -8 ~ 7
+	x: 32,
+	z: 32,
 	width: 800
 };
 var COMMAND = {
@@ -10,8 +10,9 @@ var COMMAND = {
 	TurnLeft: false
 };
 var EYE_PARAM = {
-	num: 32,
-	eyeSight: 650,
+	COVER: Math.PI * 2,
+	NUM_EYES: 32,
+	DISTANCE: 650,
 };
 var OBJECT_TYPE = {
 	NONE: 0,
@@ -20,8 +21,8 @@ var OBJECT_TYPE = {
 	ITEM: 3
 };
 var CAR_INFO = {
-	SPEED: 5,
-	ROTATE_AMOUNT: 0.1
+	SPEED: 200,
+	ROTATE_AMOUNT: 2
 };
 var clock = new THREE.Clock();
 var scene;
@@ -102,20 +103,20 @@ function init() {
 		// ray caster
 		var ray = new THREE.Raycaster(car.position, car.eyeVector.clone().normalize());
 		var collisionResults = ray.intersectObjects(obstacles);
-		if(collisionResults.length > 0 && collisionResults[0].distance < EYE_PARAM.eyeSight) {
+		if(collisionResults.length > 0 && collisionResults[0].distance < EYE_PARAM.DISTANCE) {
 			car.eyeLine.geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
 			car.eyeLine.geometry.vertices[1].set(collisionResults[0].point.x, collisionResults[0].point.y, collisionResults[0].point.z)
 			car.eyeLine.material.color.set(0xff0000)
 			document.getElementById("eye").innerHTML = collisionResults[0].distance.toFixed(2);
-			document.getElementById("eye").style.color = "#ff0000";
+			document.getElementById("eye").setAttribute("class", "warning");
 		} else {
 			var targetPos = car.position.clone();
-			targetPos.addVectors(targetPos, car.eyeVector.clone().multiplyScalar(EYE_PARAM.eyeSight))
+			targetPos.addVectors(targetPos, car.eyeVector.clone().multiplyScalar(EYE_PARAM.DISTANCE))
 			car.eyeLine.geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
 			car.eyeLine.geometry.vertices[1].set(targetPos.x, targetPos.y, targetPos.z);
-			car.eyeLine.material.color.set(0x99ff00);
-			document.getElementById("eye").innerHTML = "650";
-			document.getElementById("eye").style.color = "#ffff00";
+			car.eyeLine.material.color.set(0x88ff00);
+			document.getElementById("eye").innerHTML = EYE_PARAM.DISTANCE.toFixed(2);
+			document.getElementById("eye").setAttribute("class", "normal");
 		}
 		car.eyeLine.material.needsUpdate = true;
 		car.eyeLine.geometry.verticesNeedUpdate = true;
@@ -179,32 +180,32 @@ document.onkeyup = function(e) {
 
 
 // move object to somewhere
-function moveTo(mesh) {
+function moveTo(mesh, delta) {
 	var xMax = Math.floor((GRID.x - 1) / 2);
 	var zMax = Math.floor((GRID.z - 1) / 2);
 	var xMin = Math.floor(GRID.x/2) * -1;
 	var zMin = Math.floor(GRID.z/2) * -1;
 
 	if(COMMAND.TurnRight) {
-		mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT;
+		mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
 		if(collisionDetection()) {
-			mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT;
+			mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
 		}
 	} else if(COMMAND.TurnLeft) {
-		mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT;
+		mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
 		if(collisionDetection()) {
-			mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT;
+			mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
 		}
 	}
 	if(COMMAND.Forward) {
-		mesh.position.addVectors(mesh.position.clone(), car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED));
+		mesh.position.addVectors(mesh.position.clone(), car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		if(collisionDetection()) {
-			mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED));
+			mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		}		
 	} else if(COMMAND.Back) {
-		mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED));
+		mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		if(collisionDetection()) {
-			mesh.position.addVectors(mesh.position.clone(), car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED));
+			mesh.position.addVectors(mesh.position.clone(), car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		}		
 	}
 	mesh.updateEyes();
@@ -276,8 +277,8 @@ function generateObstacles() {
 // called per frame
 function animate() {	
 	requestAnimationFrame(animate);
-	moveTo(car);
 	var delta = clock.getDelta();
+	moveTo(car, delta);
 	var time = clock.getElapsedTime() * 5;
 	controls.update(delta);
 	renderer.autoClear = false;

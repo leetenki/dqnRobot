@@ -9,19 +9,6 @@ body {
 	overflow: hidden;
 }
 
-p {
-	position: relative;
-	top: 0px;
-	right: 0px;
-	font-size: 25px;
-	text-align: left;
-	padding-right: 4px;
-	opacity: 1;
-	font-weight: bold;
-	color: rgba(255,255,255,1);
-	text-shadow: 0 0 10px rgba(0,255,255,1);	
-}
-
 #info {
 	width: 300px;
 	height: 600px;
@@ -37,6 +24,30 @@ p {
 	margin-top: 10px;
 	padding: 10px;
 	background-color: rgba(127, 127, 0, 0.4);
+}
+
+
+p {
+	position: relative;
+	top: 0px;
+	right: 0px;
+	font-size: 25px;
+	text-align: left;
+	padding-right: 4px;
+	opacity: 1;
+	font-weight: bold;
+	color: rgba(255,255,255,1);
+	text-shadow: 0 0 10px rgba(0,255,255,1);	
+}
+
+.warning {
+	color: rgba(255,0,0,1);
+	text-shadow: 0 0 8px rgba(200,0,200,1);	
+}
+
+.normal {
+	color: rgba(0,255,0,1);
+	text-shadow: 0 0 8px rgba(200,200,200,1);	
 }
 
 #robotView {
