@@ -112,7 +112,7 @@ function init() {
 			targetPos.addVectors(targetPos, car.eyeVector.clone().multiplyScalar(EYE_PARAM.eyeSight))
 			car.eyeLine.geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
 			car.eyeLine.geometry.vertices[1].set(targetPos.x, targetPos.y, targetPos.z);
-			car.eyeLine.material.color.set(0xffff00);
+			car.eyeLine.material.color.set(0x99ff00);
 			document.getElementById("eye").innerHTML = "650";
 			document.getElementById("eye").style.color = "#ffff00";
 		}
@@ -137,6 +137,7 @@ function init() {
 
 		renderer.setSize(window.innerWidth, window.innerHeight);
 	}
+	onWindowResize();
 }
 
 // keydown function
