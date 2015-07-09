@@ -26,6 +26,7 @@ var clock = new THREE.Clock();
 var scene;
 var renderer;
 var camera;
+var robotCamera;
 var controls;
 var light;
 var obstacleCnt = 40;
@@ -40,6 +41,7 @@ window.onload = function() {
 
 // initialize window
 function init() {
+	// renderer
 	renderer = new THREE.WebGLRenderer();
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -50,6 +52,9 @@ function init() {
 	camera.position.y = 700;
 	camera.position.z = 700;
 	camera.lookAt(new THREE.Vector3(0, 0, 0))
+
+	// robot camera
+	robotCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 2000);
 
 	// controls
 	controls = new THREE.OrbitControls(camera);
@@ -123,6 +128,12 @@ function init() {
 	function onWindowResize() {
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
+
+		robotCamera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		document.getElementById("robotView").style.width = (window.innerWidth / 3) + "px";
+		document.getElementById("robotView").style.height = (window.innerHeight / 3) + "px";
 
 		renderer.setSize(window.innerWidth, window.innerHeight);
 	}
@@ -264,14 +275,23 @@ function generateObstacles() {
 function animate() {	
 	requestAnimationFrame(animate);
 	moveTo(car);
-//	if(collisionDetection()) {
-//		console.log("collision");
-//	}
 	var delta = clock.getDelta();
 	var time = clock.getElapsedTime() * 5;
 	controls.update(delta);
+	renderer.autoClear = false;
 
-	renderer.render(scene, camera);
+	// renderer to viewport
+	renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+	renderer.render( scene, camera);
+
+	// renderer robot camera
+	var robotCameraPos = car.eyeVector.clone().multiplyScalar(car.size / 2);
+	robotCameraPos.addVectors(robotCameraPos, car.position);
+	robotCamera.position.set(robotCameraPos.x, robotCameraPos.y, robotCameraPos.z);
+	var robotLookAt = robotCameraPos.addVectors(robotCameraPos, car.eyeVector.clone());
+	robotCamera.lookAt(robotLookAt);
+	renderer.setViewport(window.innerWidth/3*2, window.innerHeight/3*2, window.innerWidth/3, window.innerHeight/3);
+	renderer.render(scene, robotCamera);
 }
 
 

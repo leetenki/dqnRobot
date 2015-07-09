@@ -22,7 +22,7 @@ p {
 	text-shadow: 0 0 10px rgba(0,255,255,1);	
 }
 
-.element {
+#info {
 	width: 300px;
 	height: 600px;
 	position: absolute;
@@ -33,30 +33,20 @@ p {
 	box-shadow: 0px 0px 20px rgba(255,255,0,0.5);
 	border: 1px solid rgba(255,255,127,0.25);
 	cursor: default;
-	margin-left: 20px;
-	margin-top: 20px;
+	margin-left: 10px;
+	margin-top: 10px;
 	padding: 10px;
 	background-color: rgba(127, 127, 0, 0.4);
 }
-/*
-	element.maxLength = 0;
-	element.maxHeight = 0;
-	for(var i = 0; i < item.length; i++) {
-		var word = document.createElement("div");
-		word.className = "word";
-		word.textContent = item[i];
-		element.appendChild(word);
-		if(element.maxLength < item[i].length) {
-			element.maxLength = item[i].length;
-		}
-		element.maxHeight++;
-	}
-	element.style.width = (element.maxLength * 36 + 5) + "px";
-	element.style.height = (element.maxHeight * 60 + 40) + "px";
-	element.item = item;
 
-	// init position
-	var object = new THREE.CSS3DObject(element);
-
-
+#robotView {
+	width: 0;
+	height: 0;
+	position: absolute;
+	background-color: rgba(255, 255, 255, 0);
+	border-color: rgba(255, 255, 0, 0.5);
+	border-width: 2px;
+	border-style: solid;
+	right: 0;
+	top: 0;
 }
