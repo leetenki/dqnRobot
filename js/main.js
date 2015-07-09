@@ -10,9 +10,11 @@ var COMMAND = {
 	TurnLeft: false
 };
 var EYE_PARAM = {
-	COVER: Math.PI * 2,
-	NUM_EYES: 32,
+	COVER: Math.PI / 3 * 2,
+	NUM_EYES: 24,
 	DISTANCE: 650,
+	DANGER_COLOR: 0xff0000,
+	SAFE_COLOR: 0x88ff00,
 };
 var OBJECT_TYPE = {
 	NONE: 0,
@@ -33,8 +35,9 @@ var controls;
 var light;
 var obstacleCnt = 40;
 var obstacles = [];
-var car;
+var car;  // car.eyes = [];
 var debug;
+var yAxis = new THREE.Vector3(0, 1, 0);
 
 window.onload = function() {
 	init();
@@ -84,13 +87,19 @@ function init() {
 	scene.add(car);
 
 	// car eyes
-	var material = new THREE.LineBasicMaterial({color: 0xffff00});
-	var geometry = new THREE.Geometry();
-	geometry.vertices.push(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1));
-	var line = new THREE.Line(geometry, material);
-	scene.add(line);
-	car.eyeLine = line;
-
+	car.eyes = new Array();
+	var stepAngle = EYE_PARAM.COVER / (EYE_PARAM.NUM_EYES - 1);
+	var startAngle = -EYE_PARAM.COVER / 2;
+	for(var i = 0; i < EYE_PARAM.NUM_EYES; i++) {
+		var material = new THREE.LineBasicMaterial({color: 0xffff00});
+		var geometry = new THREE.Geometry();
+		geometry.vertices.push(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1));
+		var eye = new THREE.Line(geometry, material);
+		eye.angleY = startAngle + stepAngle * i;
+		console.log(eye.angleY);
+		scene.add(eye);
+		car.eyes.push(eye);
+	}
 	car.updateEyes = function() {
 		car.rotationAutoUpdate = true;
 		car.updateMatrix();
@@ -100,30 +109,38 @@ function init() {
 		var direction = new THREE.Vector3(0, 0, 1);
 		car.eyeVector = direction.applyMatrix4(matrix);
 
-		// ray caster
-		var ray = new THREE.Raycaster(car.position, car.eyeVector.clone().normalize());
-		var collisionResults = ray.intersectObjects(obstacles);
-		if(collisionResults.length > 0 && collisionResults[0].distance < EYE_PARAM.DISTANCE) {
-			car.eyeLine.geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
-			car.eyeLine.geometry.vertices[1].set(collisionResults[0].point.x, collisionResults[0].point.y, collisionResults[0].point.z)
-			car.eyeLine.material.color.set(0xff0000)
-			document.getElementById("eye").innerHTML = collisionResults[0].distance.toFixed(2);
-			document.getElementById("eye").setAttribute("class", "warning");
-		} else {
-			var targetPos = car.position.clone();
-			targetPos.addVectors(targetPos, car.eyeVector.clone().multiplyScalar(EYE_PARAM.DISTANCE))
-			car.eyeLine.geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
-			car.eyeLine.geometry.vertices[1].set(targetPos.x, targetPos.y, targetPos.z);
-			car.eyeLine.material.color.set(0x88ff00);
-			document.getElementById("eye").innerHTML = EYE_PARAM.DISTANCE.toFixed(2);
-			document.getElementById("eye").setAttribute("class", "normal");
+		// compute all eyes
+		var infoTag = document.getElementById("info");
+		infoTag.innerHTML = "";
+		for(var i = 0; i < car.eyes.length; i++) {
+			var pTag = document.createElement("p");
+			pTag.appendChild(document.createTextNode("Eye[" + (i+1) + "] "));
+			var spanTag = document.createElement("span");
+			var ray = new THREE.Raycaster(car.position, car.eyeVector.clone().applyAxisAngle(yAxis, car.eyes[i].angleY));
+			var collisionResults = ray.intersectObjects(obstacles);
+			if(collisionResults.length > 0 && collisionResults[0].distance < EYE_PARAM.DISTANCE) {
+				car.eyes[i].geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
+				car.eyes[i].geometry.vertices[1].set(collisionResults[0].point.x, collisionResults[0].point.y, collisionResults[0].point.z)
+				car.eyes[i].material.color.set(EYE_PARAM.DANGER_COLOR);
+				spanTag.appendChild(document.createTextNode(collisionResults[0].distance.toFixed(2)));
+				spanTag.setAttribute("class", "danger");
+			} else {
+				var targetPos = car.position.clone();
+				targetPos.addVectors(targetPos, car.eyeVector.clone().applyAxisAngle(yAxis, car.eyes[i].angleY).multiplyScalar(EYE_PARAM.DISTANCE))
+				car.eyes[i].geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
+				car.eyes[i].geometry.vertices[1].set(targetPos.x, targetPos.y, targetPos.z);
+				car.eyes[i].material.color.set(EYE_PARAM.SAFE_COLOR);
+				spanTag.appendChild(document.createTextNode(EYE_PARAM.DISTANCE.toFixed(2)));
+				spanTag.setAttribute("class", "safe");
+			}
+			car.eyes[i].material.needsUpdate = true;
+			car.eyes[i].geometry.verticesNeedUpdate = true;
+			pTag.appendChild(spanTag);
+			infoTag.appendChild(pTag);
 		}
-		car.eyeLine.material.needsUpdate = true;
-		car.eyeLine.geometry.verticesNeedUpdate = true;
 	}
 	car.rotation.y += Math.PI;
 	car.updateEyes();
-
 
 	// window resize
 	window.addEventListener("resize", onWindowResize, false);

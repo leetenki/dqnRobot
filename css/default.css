@@ -31,7 +31,8 @@ p {
 	position: relative;
 	top: 0px;
 	right: 0px;
-	font-size: 25px;
+	font-size: 11px;
+	padding: 1px;
 	text-align: left;
 	padding-right: 4px;
 	opacity: 1;
@@ -40,12 +41,12 @@ p {
 	text-shadow: 0 0 10px rgba(0,255,255,1);	
 }
 
-.warning {
+.danger {
 	color: rgba(255,0,0,1);
 	text-shadow: 0 0 8px rgba(200,0,200,1);	
 }
 
-.normal {
+.safe {
 	color: rgba(0,255,0,1);
 	text-shadow: 0 0 8px rgba(200,200,200,1);	
 }
