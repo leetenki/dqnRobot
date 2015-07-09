@@ -52,11 +52,9 @@ function init() {
 	camera.lookAt(new THREE.Vector3(0, 0, 0))
 
 	// controls
-	controls = new THREE.FirstPersonControls(camera);
-	controls.movementSpeed = 70;
-	controls.lookSpeed = 0.05;
-	controls.noFly = true;
-	controls.enabled = false;
+	controls = new THREE.OrbitControls(camera);
+	controls.keys = {};
+	controls.damping = 0.2;
 
 	// scene
 	scene = new THREE.Scene();
@@ -127,7 +125,6 @@ function init() {
 		camera.updateProjectionMatrix();
 
 		renderer.setSize(window.innerWidth, window.innerHeight);
-		controls.handleResize();
 	}
 }
 
