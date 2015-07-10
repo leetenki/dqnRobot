@@ -41,6 +41,10 @@ p {
 	text-shadow: 0 0 10px rgba(0,255,255,1);	
 }
 
+span {
+	display: inline-block;
+	width: 80px;
+}
 .danger {
 	color: rgba(255,0,0,1);
 	text-shadow: 0 0 8px rgba(200,0,200,1);	

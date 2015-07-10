@@ -35,9 +35,21 @@ var controls;
 var light;
 var obstacleCnt = 40;
 var obstacles = [];
-var car;  // car.eyes = [];
-var debug;
 var yAxis = new THREE.Vector3(0, 1, 0);
+
+/*********************
+car.size;		// box size.
+car.eyeVector;  // rotate z axis vector(0, 0, 1) to car direction.
+car.eyes = [];  // eye information. each eye is a line mesh.
+
+eye.angleY;     // rotation from y axis.
+eye.target;     // what that eye can see.
+eye.distance;   // distance to target.
+**********************/
+var car;
+var debug;
+
+
 
 window.onload = function() {
 	init();
@@ -96,7 +108,6 @@ function init() {
 		geometry.vertices.push(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1));
 		var eye = new THREE.Line(geometry, material);
 		eye.angleY = startAngle + stepAngle * i;
-		console.log(eye.angleY);
 		scene.add(eye);
 		car.eyes.push(eye);
 	}
@@ -114,7 +125,9 @@ function init() {
 		infoTag.innerHTML = "";
 		for(var i = 0; i < car.eyes.length; i++) {
 			var pTag = document.createElement("p");
-			pTag.appendChild(document.createTextNode("Eye[" + (i+1) + "] "));
+			var spanTag = document.createElement("span");
+			spanTag.appendChild(document.createTextNode("Sensor[" + (i+1) + "] "));
+			pTag.appendChild(spanTag);
 			var spanTag = document.createElement("span");
 			var ray = new THREE.Raycaster(car.position, car.eyeVector.clone().applyAxisAngle(yAxis, car.eyes[i].angleY));
 			var collisionResults = ray.intersectObjects(obstacles);
@@ -122,7 +135,9 @@ function init() {
 				car.eyes[i].geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
 				car.eyes[i].geometry.vertices[1].set(collisionResults[0].point.x, collisionResults[0].point.y, collisionResults[0].point.z)
 				car.eyes[i].material.color.set(EYE_PARAM.DANGER_COLOR);
-				spanTag.appendChild(document.createTextNode(collisionResults[0].distance.toFixed(2)));
+				car.eyes[i].target = OBJECT_TYPE.OBSTACLE;
+				car.eyes[i].distance = collisionResults[0].distance;
+				spanTag.appendChild(document.createTextNode(collisionResults[0].distance.toFixed(4)));
 				spanTag.setAttribute("class", "danger");
 			} else {
 				var targetPos = car.position.clone();
@@ -130,7 +145,9 @@ function init() {
 				car.eyes[i].geometry.vertices[0].set(car.position.x, car.position.y, car.position.z);
 				car.eyes[i].geometry.vertices[1].set(targetPos.x, targetPos.y, targetPos.z);
 				car.eyes[i].material.color.set(EYE_PARAM.SAFE_COLOR);
-				spanTag.appendChild(document.createTextNode(EYE_PARAM.DISTANCE.toFixed(2)));
+				car.eyes[i].target = OBJECT_TYPE.NONE;
+				car.eyes[i].distance = EYE_PARAM.DISTANCE;
+				spanTag.appendChild(document.createTextNode(EYE_PARAM.DISTANCE.toFixed(4)));
 				spanTag.setAttribute("class", "safe");
 			}
 			car.eyes[i].material.needsUpdate = true;
@@ -202,30 +219,36 @@ function moveTo(mesh, delta) {
 	var zMax = Math.floor((GRID.z - 1) / 2);
 	var xMin = Math.floor(GRID.x/2) * -1;
 	var zMin = Math.floor(GRID.z/2) * -1;
+	var canMove = true;
 
 	if(COMMAND.TurnRight) {
 		mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
 		if(collisionDetection()) {
+			canMove = false;
 			mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
 		}
 	} else if(COMMAND.TurnLeft) {
 		mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
 		if(collisionDetection()) {
+			canMove = false;
 			mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
 		}
 	}
 	if(COMMAND.Forward) {
 		mesh.position.addVectors(mesh.position.clone(), car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		if(collisionDetection()) {
+			canMove = false;
 			mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		}		
 	} else if(COMMAND.Back) {
 		mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		if(collisionDetection()) {
+			canMove = false;
 			mesh.position.addVectors(mesh.position.clone(), car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		}		
 	}
 	mesh.updateEyes();
+	return canMove;
 }
 
 // collision detection
