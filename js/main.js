@@ -1,6 +1,6 @@
 var GRID = {
-	x: 32,
-	z: 32,
+	x: 16,
+	z: 16,
 	width: 800
 };
 var COMMAND = {
@@ -65,7 +65,7 @@ function init() {
 	document.body.appendChild(renderer.domElement);
 
 	// camera
-	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 2000);
+	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 2600);
 	camera.position.y = 400;
 	camera.position.z = 800;
 	camera.lookAt(new THREE.Vector3(0, 0, 0))
@@ -76,6 +76,8 @@ function init() {
 	// controls
 	controls = new THREE.OrbitControls(camera);
 	controls.keys = {};
+	controls.maxDistance = 1500;
+	controls.minDistance = 200;
 	controls.damping = 0.2;
 
 	// scene
@@ -86,10 +88,13 @@ function init() {
 	light.position.set(300, 300, 300);
 	scene.add(light);
 
-	// scene helper
-	var helper = new THREE.GridHelper(GRID.width, GRID.width / GRID.x * 2);
-	helper.setColors(0x0000ff, 0x808080);
-	scene.add(helper);
+	// floor
+	var geometry = new THREE.PlaneGeometry(GRID.width * 2, GRID.width * 2, 16, 16);
+	var material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: THREE.ImageUtils.loadTexture("./assets/textures/floor.jpg")});
+	var floor = new THREE.Mesh(geometry, material);
+	floor.rotateX(-Math.PI/2);
+	floor.position.y -= 0.1;
+	scene.add(floor);
 
 	// generate obstacles
 	generateObstacles();
