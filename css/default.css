@@ -10,7 +10,7 @@ body {
 }
 
 #info {
-	width: 300px;
+	width: 170px;
 	height: 600px;
 	position: absolute;
 	-moz-user-select: none;	
@@ -24,6 +24,24 @@ body {
 	margin-top: 10px;
 	padding: 10px;
 	background-color: rgba(127, 127, 0, 0.4);
+}
+
+#status {
+	width: 170px;
+	height: 400px;
+	position: absolute;
+	left: 200px;
+	-moz-user-select: none;	
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+	box-shadow: 0px 0px 12px rgba(0,255,255,0.75);
+	border: 1px solid rgba(127,255,255,0.75);
+	background-color: rgba(0, 127, 127, 0.25);
+	cursor: default;
+	margin-left: 10px;
+	margin-top: 10px;
+	padding: 10px;
 }
 
 

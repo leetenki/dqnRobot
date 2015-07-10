@@ -171,7 +171,7 @@ function init() {
 		camera.updateProjectionMatrix();
 
 		robotCamera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
+		robotCamera.updateProjectionMatrix();
 
 		document.getElementById("robotView").style.width = (window.innerWidth / 3) + "px";
 		document.getElementById("robotView").style.height = (window.innerHeight / 3) + "px";
