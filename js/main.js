@@ -1,6 +1,6 @@
 var GRID = {
-	x: 16,
-	z: 16,
+	x: 32,
+	z: 32,
 	width: 800
 };
 var COMMAND = {
@@ -9,9 +9,16 @@ var COMMAND = {
 	TurnRight: false,
 	TurnLeft: false
 };
+var ORDER = {
+	FORWARD: 0,
+	BACK: 1,
+	TURN_LEFT: 2,
+	TURN_RIGHT: 3,
+	LENGTH: 4
+};
 var EYE_PARAM = {
-	COVER: Math.PI / 3 * 2,
-	NUM_EYES: 24,
+	COVER: Math.PI * 2,
+	NUM_EYES: 32,
 	DISTANCE: 650,
 	DANGER_COLOR: 0xff0000,
 	SAFE_COLOR: 0x88ff00,
@@ -26,6 +33,7 @@ var CAR_INFO = {
 	SPEED: 200,
 	ROTATE_AMOUNT: 2
 };
+var rewards = 0;
 var clock = new THREE.Clock();
 var scene;
 var renderer;
@@ -34,8 +42,10 @@ var robotCamera;
 var controls;
 var light;
 var obstacleCnt = 40;
+var delta = 0;
 var obstacles = [];
 var yAxis = new THREE.Vector3(0, 1, 0);
+var brain;
 
 /*********************
 car.size;		// box size.
@@ -93,7 +103,7 @@ function init() {
 	var material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: THREE.ImageUtils.loadTexture("./assets/textures/floor.jpg")});
 	var floor = new THREE.Mesh(geometry, material);
 	floor.rotateX(-Math.PI/2);
-	floor.position.y -= 0.1;
+	floor.position.y -= 0.4;
 	scene.add(floor);
 
 	// generate obstacles
@@ -163,6 +173,10 @@ function init() {
 	}
 	car.rotation.y += Math.PI;
 	car.updateEyes();
+	moveTo(car, 1);
+
+	// brain
+	brain = new deepqlearn.Brain(car.eyes.length, ORDER.LENGTH);
 
 	// window resize
 	window.addEventListener("resize", onWindowResize, false);
@@ -181,22 +195,158 @@ function init() {
 	onWindowResize();
 }
 
+//
+function determineAction() {
+	var inputInfo = new Array();
+	for(var i = 0; i < car.eyes.length; i++) {
+		inputInfo.push(car.eyes[i].distance/EYE_PARAM.DISTANCE);
+	}
+	var action = brain.forward(inputInfo);
+	doAction(action);
+}
+
+function doAction(action) {
+	moveSucceeded = orderTo(car, 0.05, action);
+
+	// rewards of distance
+	var distanceRewards = 0;
+	for(var i = 0; i < car.eyes.length; i++) {
+		distanceRewards += car.eyes[i].distance / EYE_PARAM.DISTANCE;
+	}
+	distanceRewards /= car.eyes.length;
+//	distanceRewards = Math.min(1.0, distanceRewards * 2);
+
+	// rewards of forward
+	var forwardRewards = 0;
+	if(action == ORDER.FORWARD && distanceRewards > 0.7 && moveSucceeded) {
+		forwardRewards = 0.1 * distanceRewards;
+	}
+
+	// penalty  
+	var penalty = 0;
+	if(!moveSucceeded) {
+		penalty = distanceRewards / 3 * 2;
+	}
+
+	// backwards
+	var rewards = distanceRewards + forwardRewards - penalty;
+	brain.backward(rewards);
+	
+	/***************************
+	// html overwrite
+	****************************/
+	var statusTag = document.getElementById("status");
+	statusTag.innerHTML = "";
+
+	// status html
+	var pTag = document.createElement("p");
+	var spanTag = document.createElement("span");
+	spanTag.appendChild(document.createTextNode("STATUS"));
+	pTag.appendChild(spanTag);
+	spanTag = document.createElement("span");
+	if(!moveSucceeded) {
+		spanTag.setAttribute("class", "danger");
+		spanTag.appendChild(document.createTextNode("COLLISION!!"));
+	} else {
+		spanTag.setAttribute("class", "safe");
+		spanTag.appendChild(document.createTextNode("CLEAR"));		
+	}
+	pTag.appendChild(spanTag);
+	statusTag.appendChild(pTag);
+
+	// rewards html
+	var pTag = document.createElement("p");
+	spanTag = document.createElement("span");
+	spanTag.appendChild(document.createTextNode("REWARDS"));
+	pTag.appendChild(spanTag);
+	spanTag = document.createElement("span");
+	spanTag.setAttribute("class", "score");
+	spanTag.appendChild(document.createTextNode(rewards.toFixed(2)));
+	pTag.appendChild(spanTag);
+	statusTag.appendChild(pTag);
+
+}
+
 // keydown function
 document.onkeydown = function(e) { 
+	var action = 0;
+
 	switch(e.keyIdentifier) {
 		case "Down":
-			COMMAND.Back = true;
+			action = ORDER.BACK;
+			//COMMAND.Back = true;
 			break;
 		case "Up":
-			COMMAND.Forward = true;
+			action = ORDER.FORWARD;
+			//COMMAND.Forward = true;
 			break;
 		case "Left":
-			COMMAND.TurnLeft = true;
+			action = ORDER.TURN_LEFT;
+			//COMMAND.TurnLeft = true;
 			break;
 		case "Right":
-			COMMAND.TurnRight = true;
+			action = ORDER.TURN_RIGHT;
+			//COMMAND.TurnRight = true;
 			break;
 	}
+
+
+	moveSucceeded = orderTo(car, 0.05, action);
+
+	// rewards of distance
+	var distanceRewards = 0;
+	for(var i = 0; i < car.eyes.length; i++) {
+		distanceRewards += car.eyes[i].distance / EYE_PARAM.DISTANCE;
+	}
+	distanceRewards /= car.eyes.length;
+	distanceRewards = Math.min(1.0, distanceRewards * 2);
+
+	// rewards of forward
+	var forwardRewards = 0;
+	if(action == ORDER.FORWARD && distanceRewards > 0.7 && moveSucceeded) {
+		forwardRewards = 0.2 * distanceRewards;
+	}
+
+	// penalty  
+	var penalty = 0;
+	if(!moveSucceeded) {
+		penalty = distanceRewards / 2;
+	}
+
+	var rewards = distanceRewards + forwardRewards - penalty;
+	
+	/***************************
+	// html overwrite
+	****************************/
+	var statusTag = document.getElementById("status");
+	statusTag.innerHTML = "";
+
+	// status html
+	var pTag = document.createElement("p");
+	var spanTag = document.createElement("span");
+	spanTag.appendChild(document.createTextNode("STATUS"));
+	pTag.appendChild(spanTag);
+	spanTag = document.createElement("span");
+	if(!moveSucceeded) {
+		spanTag.setAttribute("class", "danger");
+		spanTag.appendChild(document.createTextNode("COLLISION!!"));
+	} else {
+		spanTag.setAttribute("class", "safe");
+		spanTag.appendChild(document.createTextNode("CLEAR"));		
+	}
+	pTag.appendChild(spanTag);
+	statusTag.appendChild(pTag);
+
+	// rewards html
+	var pTag = document.createElement("p");
+	spanTag = document.createElement("span");
+	spanTag.appendChild(document.createTextNode("REWARDS"));
+	pTag.appendChild(spanTag);
+	spanTag = document.createElement("span");
+	spanTag.setAttribute("class", "score");
+	spanTag.appendChild(document.createTextNode(rewards.toFixed(2)));
+	pTag.appendChild(spanTag);
+	statusTag.appendChild(pTag);
 }
 
 // keyup function
@@ -220,10 +370,6 @@ document.onkeyup = function(e) {
 
 // move object to somewhere
 function moveTo(mesh, delta) {
-	var xMax = Math.floor((GRID.x - 1) / 2);
-	var zMax = Math.floor((GRID.z - 1) / 2);
-	var xMin = Math.floor(GRID.x/2) * -1;
-	var zMin = Math.floor(GRID.z/2) * -1;
 	var canMove = true;
 
 	if(COMMAND.TurnRight) {
@@ -246,6 +392,40 @@ function moveTo(mesh, delta) {
 			mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		}		
 	} else if(COMMAND.Back) {
+		mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
+		if(collisionDetection()) {
+			canMove = false;
+			mesh.position.addVectors(mesh.position.clone(), car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
+		}		
+	}
+	mesh.updateEyes();
+	return canMove;
+}
+
+
+// order to
+function orderTo(mesh, delta, command) {
+	var canMove = true;
+
+	if(command == ORDER.TURN_RIGHT) {
+		mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
+		if(collisionDetection()) {
+			canMove = false;
+			mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
+		}
+	} else if(command == ORDER.TURN_LEFT) {
+		mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
+		if(collisionDetection()) {
+			canMove = false;
+			mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
+		}
+	} else if(command == ORDER.FORWARD) {
+		mesh.position.addVectors(mesh.position.clone(), car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
+		if(collisionDetection()) {
+			canMove = false;
+			mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
+		}		
+	} else if(command == ORDER.BACK) {
 		mesh.position.sub(car.eyeVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 		if(collisionDetection()) {
 			canMove = false;
@@ -363,8 +543,9 @@ function generateObstacles() {
 // called per frame
 function animate() {	
 	requestAnimationFrame(animate);
-	var delta = clock.getDelta();
-	moveTo(car, delta);
+	delta = clock.getDelta();
+//	moveTo(car, delta);
+	determineAction();
 	var time = clock.getElapsedTime() * 5;
 	controls.update(delta);
 	renderer.autoClear = false;
