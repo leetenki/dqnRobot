@@ -312,7 +312,48 @@ function generateObstacles() {
 			scene.add(cube);
 		}
 	}
+
+	// create wall
+	var xMax = Math.floor((GRID.x - 1) / 2) + 1;
+	var zMax = Math.floor((GRID.z - 1) / 2) + 1;
+	var xMin = Math.floor(GRID.x/2) * -1 - 1;
+	var zMin = Math.floor(GRID.z/2) * -1 - 1;
+	for(var x = xMin; x <= xMax; x++) {
+		var cube = createCube({x:x, z:zMin}, "./assets/textures/stone.jpg");
+		cube.x = cube.position.x;
+		cube.y = cube.position.y;
+		cube.z = cube.position.z;
+		cube.objectType = OBJECT_TYPE.OBSTACLE;
+		obstacles.push(cube);
+		scene.add(cube);
+
+		var cube = createCube({x:x, z:zMax}, "./assets/textures/stone.jpg");
+		cube.x = cube.position.x;
+		cube.y = cube.position.y;
+		cube.z = cube.position.z;
+		cube.objectType = OBJECT_TYPE.OBSTACLE;
+		obstacles.push(cube);
+		scene.add(cube);	
+	}
+	for(var z = zMin+1; z < zMax; z++) {
+		var cube = createCube({x:xMin, z:z}, "./assets/textures/stone.jpg");
+		cube.x = cube.position.x;
+		cube.y = cube.position.y;
+		cube.z = cube.position.z;
+		cube.objectType = OBJECT_TYPE.OBSTACLE;
+		obstacles.push(cube);
+		scene.add(cube);	
+
+		var cube = createCube({x:xMax, z:z}, "./assets/textures/stone.jpg");
+		cube.x = cube.position.x;
+		cube.y = cube.position.y;
+		cube.z = cube.position.z;
+		cube.objectType = OBJECT_TYPE.OBSTACLE;
+		obstacles.push(cube);
+		scene.add(cube);	
+	}
 }
+
 
 // called per frame
 function animate() {	
