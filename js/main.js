@@ -24,7 +24,7 @@ var EYE_PARAM = {
 	NUM_EYES: 128,
 	DISTANCE: 650,
 	DANGER_COLOR: 0xff0000,
-	SAFE_COLOR: 0x88ff00,
+	SAFE_COLOR: 0xffff00,
 };
 var OBJECT_TYPE = {
 	NONE: 0,
@@ -102,12 +102,25 @@ var Car = function(param) {
 	this.barChartCanvas.height = 110;
 	this.barChartCanvas.setAttribute("class", "barChart");
 	document.getElementById("barChartContainer").appendChild(this.barChartCanvas);
+
+	var ctx = this.barChartCanvas.getContext("2d");
+    var gradient = ctx.createLinearGradient(0, 0, 0, 100);
+    gradient.addColorStop(0, 'rgba(100,250,100,1)');   
+    gradient.addColorStop(0.7, 'rgba(100,200,205,0.3)');
+    gradient.addColorStop(1, 'rgba(0,51,153,0.5)');   
+    
+    var gradient2 = ctx.createLinearGradient(0, 0, 0, 100);
+    gradient2.addColorStop(0, 'rgba(0,51,153,0.9)');   
+    gradient2.addColorStop(1, 'rgba(0,51,153,0)');
+
 	var data = {
 	    labels: [],
 	    datasets: [
 	        {
-	            fillColor: "rgba(100,100,255,0.8)",
-	            data: []
+                fillColor : gradient,
+                highlightFill: gradient2,
+                strokeColor : "rgba(151,187,205,1)",
+ 	            data: []
 	        }
 	    ]
 	};
@@ -122,18 +135,18 @@ var Car = function(param) {
 		animation: false,
 		inGraphDataShow: false,
 		inGraphDataFontSize: 1,
-		barShowStroke: false,
+//		barShowStroke: false,
 		showScale: false,
 		barValueSpacing: 0.7,
 		barDatasetSpacing: 1,
-		barStrokeWidth: 1,
+		barStrokeWidth: 0.5,
 		scaleShowLabels: false,
 		scaleShowLine: false,
 		scaleShowHorizontalLines: false,
 		scaleShowGridLines: false,
 		scaleShowVerticalLines: false,
+		scaleBeginAtZero: true,
 		legendTemplate: "",
-		scaleFontColor: "rgba(0,0,0,1)",
 		scaleShowGridLines: false,
 	}
 	this.barChart = new Chart(this.barChartCanvas.getContext("2d")).Bar(data, option);
@@ -323,8 +336,8 @@ var Car = function(param) {
 		}
 
 		// backwards
-		var rewards = distanceRewards + forwardRewards - penalty;
-		this.brain.backward(rewards);
+		this.rewards = distanceRewards + forwardRewards - penalty;
+		this.brain.backward(this.rewards);
 	}
 
 	// function to draw HTML
