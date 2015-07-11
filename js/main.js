@@ -34,7 +34,7 @@ var OBJECT_TYPE = {
 	CAR: 4
 };
 var CAR_INFO = {
-	SIZE: 20,
+	SIZE: 50,
 	SPEED: 200,
 	ROTATE_AMOUNT: 2
 };
@@ -47,7 +47,7 @@ var MODE = {
 /**********************
 // Global variable
 ***********************/
-var mode = MODE.MANUAL;
+var mode = MODE.AUTO;
 var keyState = {
 	up: false,
 	down: false,
@@ -67,6 +67,7 @@ var obstacles = [];
 var yAxis = new THREE.Vector3(0, 1, 0);
 var cars;
 var selected;
+var skydome;
 
 
 var debug;
@@ -140,6 +141,8 @@ var Car = function(param) {
 	// create car mesh
 	var geometry = new THREE.BoxGeometry(param.size, param.size, param.size);
 	var texture = THREE.ImageUtils.loadTexture(param.src);
+	texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
 	var material = new THREE.MeshBasicMaterial({map: texture});
 	this.mesh = new THREE.Mesh(geometry, material);
 	this.mesh.position.y = this.offsetY;
@@ -417,13 +420,13 @@ function init() {
 	document.body.appendChild(renderer.domElement);
 
 	// camera
-	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 2600);
+	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 4200);
 	camera.position.y = 400;
 	camera.position.z = 800;
 	camera.lookAt(new THREE.Vector3(0, 0, 0))
 
 	// robot camera
-	robotCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 2000);
+	robotCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 4000);
 
 	// controls
 	controls = new THREE.OrbitControls(camera);
@@ -450,6 +453,21 @@ function init() {
 
 	// generate obstacles
 	generateObstacles();
+
+	// generate skydome
+
+	var texture = THREE.ImageUtils.loadTexture("assets/textures/stars.jpg")
+	texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+	var material = new THREE.MeshPhongMaterial({
+		shininess: 10,
+		side: THREE.DoubleSide,
+//		emissive: 0x444444,
+		map: texture
+	});
+	var sphere = new THREE.BoxGeometry(4200, 3000, 4200);
+	skydome = new THREE.Mesh(sphere, material);
+	scene.add(skydome);
 
 	// generate car
 	cars = new Array();
@@ -569,10 +587,14 @@ function animate() {
 		for(var i = 0; i < cars.length; i++) {
 			var action = cars[i].think();
 			cars[i].act(action, delta);
+			cars[i].drawToHTML();
 		}
 	} else {
 		manualAction(delta);
 	}
+
+	// update skydome
+	skydome.rotation.y += delta/10;
 
 	// rendering
 	renderer.autoClear = false;
@@ -588,6 +610,7 @@ function animate() {
 	var robotLookAt = robotCameraPos.addVectors(robotCameraPos, cars[selected].directionVector.clone());
 	robotCamera.lookAt(robotLookAt);
 	renderer.setViewport(window.innerWidth/3*2, window.innerHeight/3*2, window.innerWidth/3, window.innerHeight/3);
+	renderer.clearDepth();
 	renderer.render(scene, robotCamera);
 }
 
