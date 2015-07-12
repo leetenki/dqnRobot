@@ -1,11 +1,6 @@
 /********************
 // Constant variable
 *********************/
-var GRID = {
-	x: 32,
-	z: 32,
-	width: 800
-};
 var COMMAND = {
 	FORWARD: {
 		action: 0,
@@ -29,15 +24,26 @@ var EYE_PARAM = {
 	COVER: Math.PI * 2,
 	NUM_EYES: 128,
 	DISTANCE: 300,
-	DANGER_COLOR: 0xff0000,
+//	DANGER_COLOR: 0xff0000,
+//	WARNNING_COLOR: 0xff8800,
 	SAFE_COLOR: 0xffff00,
 };
 var OBJECT_TYPE = {
-	NONE: 0,
-	OBSTACLE: 1,
-	WALL: 2,
-	ITEM: 3,
-	CAR: 4
+	NONE: {
+		text: "NONE",
+	},
+	OBSTACLE: {
+		text: "BARRIER",
+	},
+	WALL: {
+		text: "WALL",
+	},
+	ITEM: {
+		text: "ITEM",
+	},
+	CAR: {
+		text: "CAR",
+	},
 };
 var CAR_INFO = {
 	SIZE: 50,
@@ -61,7 +67,20 @@ var MODE = {
 		class: "safe",
 	}
 }
-
+var COURSE = {
+	NONE: 0,
+	RANDOM: {
+		NUM_OBSTACLES: 50,
+		OBSTACLE_SIZE: 50,
+		OBSTACLE_TEXTURE: "./assets/textures/crate.gif",
+		WALL_SIZE: 100,
+		WALL_TEXTURE: "./assets/textures/stone.jpg",	
+	},
+}
+var WORLD_INFO = {
+	WORLD_SIZE: 1600,
+	COURSE: COURSE.RANDOM
+}
 
 /**********************
 // Global variable
@@ -79,395 +98,15 @@ var camera;
 var robotCamera;
 var controls;
 var light;
-var obstacleCnt = 40;
 var delta = 0;
-var obstacles = [];
-var yAxis = new THREE.Vector3(0, 1, 0);
-var cars;
-var selected;
-var skydome;
-
 var debug;
 
+var ui;
+var cars;
+var selected;
+var world;
 
-/************************
-// Car object definition
-// param.ID
-// param.src
-// param.mode
-// param.size
-// param.eyeParam
-************************/
-var Car = function(param) {
-	// object variables
-	this.mesh = null;
-	this.eyes = new Array();
-	this.directionVector = new THREE.Vector3(0, 0, 1);
-	this.barChart = null;
-	this.barChartCanvas = null;
-	this.IDTag = null;
-	this.ID = param.ID;
-	this.command = COMMAND.FORWARD;
-	this.rewards = 0;
-	this.moveSucceeded = false;
-	this.brain = new deepqlearn.Brain(param.eyeParam.NUM_EYES, COMMAND.LENGTH);
-	this.size = param.size;
-	this.offsetY = this.size / 2;
-	this.mode = param.mode;
 
-	// create bar chart
-	this.barChartCanvas = document.createElement("canvas");
-	this.barChartCanvas.width = 820;
-	this.barChartCanvas.height = 100;
-	this.barChartCanvas.setAttribute("class", "barChart");
-	document.getElementById("barChartContainer").appendChild(this.barChartCanvas);
-
-	var ctx = this.barChartCanvas.getContext("2d");
-    var gradient = ctx.createLinearGradient(0, 0, 0, 100);
-    gradient.addColorStop(0, 'rgba(100,200,100,0.8)');   
-    gradient.addColorStop(0.5, 'rgba(100,200,205,0.6)');
-    gradient.addColorStop(1, 'rgba(0,51,153,0.4)');   
-	var data = {
-	    labels: [],
-	    datasets: [
-	        {
-                fillColor : gradient,
-                strokeColor : "rgba(151,187,205,1)",
- 	            data: []
-	        }
-	    ]
-	};
-	data.labels = new Array(param.eyeParam.NUM_EYES);
-	data.datasets[0].data = new Array(param.eyeParam.NUM_EYES);
-	for(var i = 0; i < param.eyeParam.NUM_EYES; i++) {
-		data.labels[i] = "";
-		data.datasets[0].data[i] = 0;
-	}
-	var option = {
-		responsive: true,
-		animation: false,
-		inGraphDataShow: false,
-		inGraphDataFontSize: 1,
-//		barShowStroke: false,
-		showScale: false,
-		barValueSpacing: 0.7,
-		barDatasetSpacing: 1,
-		barStrokeWidth: 0.9,
-		scaleShowLabels: false,
-		scaleShowLine: false,
-		scaleShowHorizontalLines: false,
-		scaleShowGridLines: false,
-		scaleShowVerticalLines: false,
-		scaleBeginAtZero: true,
-		legendTemplate: "",
-		scaleShowGridLines: false,
-	}
-	this.barChart = new Chart(this.barChartCanvas.getContext("2d")).Bar(data, option);
-
-	// create car mesh
-	var geometry = new THREE.BoxGeometry(param.size, param.size, param.size);
-	var texture = THREE.ImageUtils.loadTexture(param.src);
-	texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-	var material = new THREE.MeshBasicMaterial({map: texture});
-	this.mesh = new THREE.Mesh(geometry, material);
-	this.mesh.position.y = this.offsetY;
-
-	// ID tag
-	var pTag = document.createElement("p");
-	var spanTag = document.createElement("span");
-	spanTag.appendChild(document.createTextNode("ID"));
-	pTag.appendChild(spanTag);
-	spanTag = document.createElement("span");
-	spanTag.appendChild(document.createTextNode(this.ID));
-	pTag.appendChild(spanTag);
-	this.IDTag = pTag;
-
-	// car eyes
-	var stepAngle = param.eyeParam.COVER / (param.eyeParam.NUM_EYES - 1);
-	var startAngle = -param.eyeParam.COVER / 2;
-	for(var i = 0; i < param.eyeParam.NUM_EYES; i++) {
-		var material = new THREE.LineBasicMaterial({color: param.eyeParam.SAFE_COLOR});
-		var geometry = new THREE.Geometry();
-		geometry.vertices.push(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1));
-		var eye = new THREE.Line(geometry, material);
-		eye.angleY = startAngle + stepAngle * i;
-		this.eyes.push(eye);
-	}
-
-	// function to update eyes
-	/*********************
-	eye.angleY;     // rotation from y axis.
-	eye.target;     // what that eye can see.
-	eye.distance;   // distance to target.
-	**********************/
-	this.updateEyes = function() {
-		// update mesh
-		this.mesh.rotationAutoUpdate = true;
-		this.mesh.updateMatrix();
-		this.mesh.updateMatrixWorld();
-
-		var matrix = new THREE.Matrix4();
-		matrix.extractRotation(this.mesh.matrix);
-		var direction = new THREE.Vector3(0, 0, 1);
-		this.directionVector = direction.applyMatrix4(matrix);
-
-		this.infoTags = new Array();
-		for(var i = 0; i < this.eyes.length; i++) {
-			// update each eye
-			var ray = new THREE.Raycaster(this.mesh.position, this.directionVector.clone().applyAxisAngle(yAxis, this.eyes[i].angleY));
-			var collisionResults = ray.intersectObjects(obstacles);
-			if(collisionResults.length > 0 && collisionResults[0].distance < param.eyeParam.DISTANCE) {
-				this.eyes[i].geometry.vertices[0].set(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
-				this.eyes[i].geometry.vertices[1].set(collisionResults[0].point.x, collisionResults[0].point.y, collisionResults[0].point.z)
-				this.eyes[i].material.color.set(EYE_PARAM.DANGER_COLOR);
-				this.eyes[i].target = OBJECT_TYPE.OBSTACLE;
-				this.eyes[i].distance = collisionResults[0].distance;
-			} else {
-				var targetPos = this.mesh.position.clone();
-				targetPos.addVectors(targetPos, this.directionVector.clone().applyAxisAngle(yAxis, this.eyes[i].angleY).multiplyScalar(param.eyeParam.DISTANCE))
-				this.eyes[i].geometry.vertices[0].set(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
-				this.eyes[i].geometry.vertices[1].set(targetPos.x, targetPos.y, targetPos.z);
-				this.eyes[i].material.color.set(param.eyeParam.SAFE_COLOR);
-				this.eyes[i].target = OBJECT_TYPE.NONE;
-				this.eyes[i].distance = param.eyeParam.DISTANCE;
-			}
-			this.eyes[i].material.needsUpdate = true;
-			this.eyes[i].geometry.verticesNeedUpdate = true;
-		}
-	}
-
-	// function to detect collision
-	this.collisionDetection = function() {
-		this.mesh.matrixAutoUpdate = true;
-		this.mesh.updateMatrix();
-		this.mesh.updateMatrixWorld();
-
-		// from car vector to each objects vector
-		var boundingBox = [
-			this.mesh.geometry.vertices[0].clone().applyMatrix4(this.mesh.matrixWorld),
-			this.mesh.geometry.vertices[1].clone().applyMatrix4(this.mesh.matrixWorld),
-			this.mesh.geometry.vertices[4].clone().applyMatrix4(this.mesh.matrixWorld),
-			this.mesh.geometry.vertices[5].clone().applyMatrix4(this.mesh.matrixWorld),
-			this.mesh.geometry.vertices[0].clone().applyMatrix4(this.mesh.matrixWorld),
-		]
-		// set y to the middle to avoid bug
-		for(var i = 0; i < boundingBox.length; i++) {
-			boundingBox[i].y /= 2;
-		}
-		for(var i = 0; i < boundingBox.length-1; i++) {
-			var edgeVector = boundingBox[i+1].clone();
-			edgeVector.subVectors(edgeVector, boundingBox[i]);
-
-			var ray = new THREE.Raycaster(boundingBox[i], edgeVector.normalize());
-			var collisionResults = ray.intersectObjects(obstacles);
-			if(collisionResults.length > 0 && collisionResults[0].distance < this.size) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	// function to move car
-	this.move = function(command, delta) {
-		var moveSucceeded = true;
-
-		if(command == COMMAND.TURN_RIGHT) {
-			this.mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
-			if(this.collisionDetection()) {
-				moveSucceeded = false;
-				this.mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
-			}
-		} else if(command == COMMAND.TURN_LEFT) {
-			this.mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
-			if(this.collisionDetection()) {
-				moveSucceeded = false;
-				this.mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
-			}
-		} else if(command == COMMAND.FORWARD) {
-			this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
-			if(this.collisionDetection()) {
-				moveSucceeded = false;
-				this.mesh.position.sub(this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
-			}		
-		} else if(command == COMMAND.BACK) {
-			this.mesh.position.sub(this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
-			if(this.collisionDetection()) {
-				moveSucceeded = false;
-				this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
-			}
-		}
-		this.updateEyes();
-		return moveSucceeded;
-	}
-
-	// stop to learn
-	this.stopToLearn = function() {
-		this.brain.epsilon_test_time = 0.05;
-		this.brain.learning = false;
-	}
-
-	// start to learn
-	this.startToLearn = function() {
-		this.brain.epsilon_test_time = 0.05;
-		this.brain.learning = true;		
-	}
-
-	// switch mode
-	this.switchMode = function() {
-		switch(this.mode) {
-    		case MODE.MANUAL: {
-				this.mode = MODE.LEARNING;
-				this.startToLearn();
-    			break;
-    		}
-    		case MODE.LEARNING: {
-				this.mode = MODE.FREEDOM;
-				this.stopToLearn();
-    			break;
-    		}
-    		case MODE.FREEDOM: {
-				this.mode = MODE.MANUAL;
-				this.drawToHTML();			
-    			break;
-    		}
-		}
-	}
-
-	// function to think what action to do
-	this.think = function() {
-		var inputInfo = new Array();
-		for(var i = 0; i < this.eyes.length; i++) {
-			inputInfo.push(this.eyes[i].distance/param.eyeParam.DISTANCE);
-		}
-		action = this.brain.forward(inputInfo);
-		for(var key in COMMAND) {
-			if(COMMAND[key].action == action) {
-				this.command = COMMAND[key];
-				break;
-			}
-		}
-		return this.command;
-	}
-
-	// function to do action
-	this.act = function(command, delta) {
-		this.command = command;
-		this.moveSucceeded = this.move(this.command, delta);
-
-		// compute rewards
-		// rewards of distance
-		var distanceRewards = 0;
-		for(var i = 0; i < this.eyes.length; i++) {
-			distanceRewards += this.eyes[i].distance / param.eyeParam.DISTANCE;
-		}
-		distanceRewards /= this.eyes.length;
-
-		// rewards of forward
-		var forwardRewards = 0;
-		if(command == COMMAND.FORWARD && distanceRewards > 0.7 && this.moveSucceeded) {
-			forwardRewards = 0.1 * distanceRewards;
-		}
-
-		// penalty  
-		var penalty = 0;
-		if(!this.moveSucceeded) {
-			penalty = 1;
-		}
-
-		// backwards
-		this.rewards = distanceRewards + forwardRewards - penalty;
-		this.brain.backward(this.rewards);
-	}
-
-	// function to draw HTML
-	this.drawToHTML = function() {
-		/***************************
-		// info tag
-		****************************/
-		/*
-		var infoTag = document.getElementById("info");
-		infoTag.innerHTML = "";
-		*/
-
-		/***************************
-		// status tag
-		****************************/
-		var statusTag = document.getElementById("status");
-		statusTag.innerHTML = "";
-		statusTag.appendChild(this.IDTag);
-
-		// mode tag
-		var pTag = document.createElement("p");
-		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("MODE"));
-		pTag.appendChild(spanTag);
-		spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode(this.mode.text));
-		spanTag.setAttribute("class", this.mode.class);
-		pTag.appendChild(spanTag);
-		statusTag.appendChild(pTag);
-
-		// action tag
-		var pTag = document.createElement("p");
-		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("ACTION"));
-		pTag.appendChild(spanTag);
-		spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode(this.command.text));
-		pTag.appendChild(spanTag);
-		statusTag.appendChild(pTag);
-
-		// result tag
-		var pTag = document.createElement("p");
-		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("RESULT"));
-		pTag.appendChild(spanTag);
-		spanTag = document.createElement("span");
-		if(!this.moveSucceeded) {
-			spanTag.setAttribute("class", "danger");
-			spanTag.appendChild(document.createTextNode("COLLISION!!"));
-		} else {
-			spanTag.setAttribute("class", "safe");
-			spanTag.appendChild(document.createTextNode("CLEAR"));		
-		}
-		pTag.appendChild(spanTag);
-		statusTag.appendChild(pTag);
-
-		// rewards tag
-		pTag = document.createElement("p");
-		spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("REWARDS"));
-		pTag.appendChild(spanTag);
-		spanTag = document.createElement("span");
-		spanTag.setAttribute("class", "score");
-		spanTag.appendChild(document.createTextNode(this.rewards.toFixed(2)));
-		pTag.appendChild(spanTag);
-		statusTag.appendChild(pTag);
-
-		/************************
-		// update barchart tag
-		/************************/
-		var barChartContainer = document.getElementById("barChartContainer");
-		barChartContainer.innerHTML = "";
-		var pTag = document.createElement("p");
-		pTag.setAttribute("id", "inputLabel");
-		var averageDistance = 0;
-		for(var i = 0; i < this.eyes.length; i++) {
-			averageDistance += this.eyes[i].distance;
-		}
-		averageDistance /= this.eyes.length;
-		pTag.appendChild(document.createTextNode("INPUT AVERAGE　　" + averageDistance.toFixed(2)));
-		barChartContainer.appendChild(pTag);
-		barChartContainer.appendChild(this.barChartCanvas);
-		for(var i = 0; i < this.eyes.length; i++) {
-			this.barChart.datasets[0].bars[i].value = this.eyes[i].distance;
-		}
-		this.barChart.update();
-	}
-
-	return this;
-}
 
 window.onload = function() {
 	init();
@@ -507,29 +146,9 @@ function init() {
 	light.position.set(300, 300, 300);
 	scene.add(light);
 
-	// floor
-	var geometry = new THREE.PlaneGeometry(GRID.width * 2, GRID.width * 2, 16, 16);
-	var material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: THREE.ImageUtils.loadTexture("./assets/textures/floor.jpg")});
-	var floor = new THREE.Mesh(geometry, material);
-	floor.rotateX(-Math.PI/2);
-	floor.position.y -= 0.4;
-	scene.add(floor);
-
-	// generate obstacles
-	generateObstacles();
-
-	// generate skydome
-	var texture = THREE.ImageUtils.loadTexture("assets/textures/stars.jpg")
-	texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-	var material = new THREE.MeshPhongMaterial({
-		shininess: 10,
-		side: THREE.DoubleSide,
-		map: texture
-	});
-	var sphere = new THREE.BoxGeometry(4200, 3000, 4200);
-	skydome = new THREE.Mesh(sphere, material);
-	scene.add(skydome);
+	// World
+	world = new World(WORLD_INFO);
+	scene.add(world);
 
 	// generate car
 	cars = new Array();
@@ -541,43 +160,31 @@ function init() {
 		mode: MODE.MANUAL
 	});
 	car.mesh.rotation.y += Math.PI;
-	scene.add(car.mesh);
+	world.putIntoWorld(car.mesh, car.mesh.position);
 	for(var i = 0; i < car.eyes.length; i++) {
-		scene.add(car.eyes[i]);
+		world.add(car.eyes[i]);
+	}
+	cars.push(car);
+
+	var car = new Car({
+		ID: "CAR2",
+		src: "./assets/textures/tago.jpg",
+		size: CAR_INFO.SIZE,
+		eyeParam: EYE_PARAM,
+		mode: MODE.FREEDOM
+	});
+	car.mesh.rotation.y += Math.PI;
+	world.putIntoWorld(car.mesh, car.mesh.position);
+	for(var i = 0; i < car.eyes.length; i++) {
+		world.add(car.eyes[i]);
 	}
 	cars.push(car);
 	selected = 0;
 
-	// menu button
-	// switch
-	$(function() {
-	    $('#switch')
-	    .hover(
-	        function(){
-	            $(this).stop().animate({
-	                'width':'120px',
-	                'height':'120px',
-	                'marginTop': '-10px',
-	                'marginLeft':'-10px',
-	                'opacity': '0.9'
-	            },300);
-	        },
-	        function () {
-	            $(this).stop().animate({
-	                'width':'100px',
-	                'height':'100px',
-	                'marginTop': '0px',
-	                'marginLeft':'0px',
-	                'opacity': '0.6'
-	            },'fast');
-	        }
-	    ).click(function() {
-    		cars[selected].switchMode();
-            $(this).css({
-            	"-webkit-filter": cars[selected].mode.switchStyle
-			});	    	
-	    });
-	});
+	// ui
+	ui = new UI();
+	ui.initHTML(cars[0]);
+	ui.drawHTML(cars[0]);
 
 	// window resize
 	window.addEventListener("resize", onWindowResize, false);
@@ -594,77 +201,11 @@ function init() {
 		renderer.setSize(window.innerWidth, window.innerHeight);
 	}
 	onWindowResize();
-}
 
-// generaget obstacles
-function generateObstacles() {
-	for(var i = 0; i < obstacleCnt; i++) {
-		var obstacle = {
-			x: 0,
-			z: 0
-		}
-		do {
-			obstacle.x = Math.floor(Math.random() * GRID.x) - Math.floor(GRID.x / 2);
-			obstacle.z = Math.floor(Math.random() * GRID.z) - Math.floor(GRID.z / 2);
-		} while((obstacle.x < 2 && obstacle.x > -3 && obstacle.z < 2 && obstacle.z > -3));
-		var alreadyExists = false;
-		for(var j = 0; j < obstacles.length; j++) {
-			if(obstacles[j].x == obstacle.x && obstacles[j].z == obstacle.z) {
-				alreadyExists = true;
-				break;
-			}
-		}
-		if(alreadyExists) {
-			i--;
-		} else {
-			var cube = createCube(obstacle, "./assets/textures/crate.gif");
-			cube.x = cube.position.x;
-			cube.y = cube.position.y;
-			cube.z = cube.position.z;
-			cube.objectType = OBJECT_TYPE.OBSTACLE;
-			obstacles.push(cube);
-			scene.add(cube);
-		}
-	}
-
-	// create wall
-	var xMax = Math.floor((GRID.x - 1) / 2) + 1;
-	var zMax = Math.floor((GRID.z - 1) / 2) + 1;
-	var xMin = Math.floor(GRID.x/2) * -1 - 1;
-	var zMin = Math.floor(GRID.z/2) * -1 - 1;
-	for(var x = xMin; x <= xMax; x++) {
-		var cube = createCube({x:x, z:zMin}, "./assets/textures/stone.jpg");
-		cube.x = cube.position.x;
-		cube.y = cube.position.y;
-		cube.z = cube.position.z;
-		cube.objectType = OBJECT_TYPE.OBSTACLE;
-		obstacles.push(cube);
-		scene.add(cube);
-
-		var cube = createCube({x:x, z:zMax}, "./assets/textures/stone.jpg");
-		cube.x = cube.position.x;
-		cube.y = cube.position.y;
-		cube.z = cube.position.z;
-		cube.objectType = OBJECT_TYPE.OBSTACLE;
-		obstacles.push(cube);
-		scene.add(cube);	
-	}
-	for(var z = zMin+1; z < zMax; z++) {
-		var cube = createCube({x:xMin, z:z}, "./assets/textures/stone.jpg");
-		cube.x = cube.position.x;
-		cube.y = cube.position.y;
-		cube.z = cube.position.z;
-		cube.objectType = OBJECT_TYPE.OBSTACLE;
-		obstacles.push(cube);
-		scene.add(cube);	
-
-		var cube = createCube({x:xMax, z:z}, "./assets/textures/stone.jpg");
-		cube.x = cube.position.x;
-		cube.y = cube.position.y;
-		cube.z = cube.position.z;
-		cube.objectType = OBJECT_TYPE.OBSTACLE;
-		obstacles.push(cube);
-		scene.add(cube);	
+	// onmouse move
+	window.addEventListener("mousemove", onMouseMove, false);
+	function onMouseMove(e) {
+		//console.log(e.clientX + ", " + e.clientY);
 	}
 }
 
@@ -688,14 +229,16 @@ function animate() {
 			case MODE.FREEDOM: {
 				var command = cars[i].think();
 				cars[i].act(command, delta);
-				cars[i].drawToHTML();
+				if(i == selected) {
+					ui.drawHTML(cars[i]);
+				}
 				break;
 			}
 		}
 	}
 
-	// update skydome
-	skydome.rotation.y += delta/20;
+	// update world
+	world.update(delta);
 
 	// rendering
 	renderer.autoClear = false;
@@ -713,34 +256,6 @@ function animate() {
 	renderer.setViewport(window.innerWidth/3*2, window.innerHeight/3*2, window.innerWidth/3, window.innerHeight/3);
 	renderer.clearDepth();
 	renderer.render(scene, robotCamera);
-}
-
-
-
-// function to create a cube
-function createCube(obstacle, src) {
-	// obstacle
-	var size = GRID.width * 2 / GRID.x;
-	var geometry = new THREE.BoxGeometry(size, size, size);
-	var texture = THREE.ImageUtils.loadTexture(src);
-	texture.anisotropy = renderer.getMaxAnisotropy();
-	var material = new THREE.MeshBasicMaterial({map: texture});
-	mesh = new THREE.Mesh(geometry, material);
-	mesh.size = size;
-	mesh.grid = obstacle;
-	adjustMesh(mesh);
-	return mesh;
-}
-
-// convert grid position to normal position
-function adjustMesh(mesh) {
-	mesh.position.y = mesh.size / 2;
-	mesh.position.z = mesh.grid.z * mesh.size;
-	mesh.position.x = mesh.grid.x * mesh.size;
-	if(GRID.x % 2 == 0) {
-		mesh.position.z += GRID.width / GRID.z;
-		mesh.position.x += GRID.width / GRID.x;		
-	}
 }
 
 // keydown function
@@ -761,7 +276,7 @@ function manualAction(delta) {
 		acted = true;
 	}
 	if(acted) {
-		cars[selected].drawToHTML();
+		ui.drawHTML(cars[selected]);
 	}
 }
 

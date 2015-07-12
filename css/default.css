@@ -14,7 +14,7 @@ body {
 *****************************/
 #info {
 	width: 170px;
-	height: 500px;
+	height: 73%;
 	position: absolute;
 	-moz-user-select: none;	
 	-khtml-user-select: none;
@@ -74,6 +74,12 @@ span {
 	color: rgba(255,0,0,1);
 	text-shadow: 0 0 8px rgba(200,0,200,1);	
 }
+/*
+.victim {
+	color: rgba(204, 0, 153, 1);
+	text-shadow: 0 0 8px rgba(204, 30, 153, 1);
+}
+*/
 .safe {
 	color: rgba(0,255,0,1);
 	text-shadow: 0 0 8px rgba(200,200,200,1);	
@@ -117,7 +123,9 @@ div#barChartContainer {
 	position: absolute;
 	bottom: 1px;
 	width: 60%;
+	max-width: 1000px;
 	height:18%;
+	min-height: 80px;
 	margin-left: 9px;
 	margin-bottom: 2px;
 	box-shadow: 0px 0px 12px rgba(255,255,255,0.75);
