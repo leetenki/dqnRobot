@@ -9,6 +9,9 @@ body {
 	overflow: hidden;
 }
 
+/*************************** /
+//    navication box
+*****************************/
 #info {
 	width: 170px;
 	height: 500px;
@@ -21,6 +24,11 @@ body {
 	margin-left: 10px;
 	margin-top: 10px;
 	padding: 10px;
+	/*
+	box-shadow: 0px 0px 20px rgba(255,255,0,0.5);
+	border: 1px solid rgba(255,255,127,0.25);
+	background-color: rgba(127, 127, 0, 0.4);
+	*/
 	box-shadow: 0px 0px 12px rgba(0,255,255,0.75);
 	border: 1px solid rgba(127,255,255,0.75);
 	background-color: rgba(0, 127, 127, 0.25);
@@ -44,32 +52,6 @@ body {
 	padding: 10px;
 }
 
-/*************************** /
-//     bar chart
-*****************************/
-canvas.barChart {
-	position: absolute;
-	margin: 5px;
-	bottom: 0px;
-	box-shadow: 0px 0px 12px rgba(255,255,255,0.75);
-	border: 1px solid rgba(127,255,255,0.75);
-	background-color: rgba(127, 127, 127, 0.25);
-}
-
-p#inputLabel {
-	padding-left: 10px;
-	padding-bottom: 12%;
-	font-size: 13px;
-	font-weight: bolder;
-}
-
-div#barChartContainer {
-	position: absolute;
-	bottom: 1px;
-	width: 60%;
-}
-
-
 p {
 	position: relative;
 	top: 0px;
@@ -92,20 +74,81 @@ span {
 	color: rgba(255,0,0,1);
 	text-shadow: 0 0 8px rgba(200,0,200,1);	
 }
-
 .safe {
 	color: rgba(0,255,0,1);
 	text-shadow: 0 0 8px rgba(200,200,200,1);	
 }
+.active {
+	color: rgba(255,100,0,1);
+	text-shadow: 0 0 8px rgba(255,100,100,1);
+}
+.inactive {
+	color: rgba(100,200,255,1);
+	text-shadow: 0 0 8px rgba(200,200,255,1);	
+}
+.score {
+}
 
+
+/*************************** /
+//     icon menu
+*****************************/
+#menu {
+	list-style: none;
+	position: absolute;
+	margin-top: 10px;
+	left: 420px;
+	z-index: 1;
+}
+#switch {
+	width: 100px;
+	height: 100px;
+	opacity: 0.6;
+	cursor: pointer;
+	-webkit-filter: brightness(100%);
+	-webkit-filter: hue-rotate(0deg);
+  	filter: hue-rotate(0deg);
+}
+
+/*************************** /
+//     bar chart
+*****************************/
+div#barChartContainer {
+	position: absolute;
+	bottom: 1px;
+	width: 60%;
+	height:18%;
+	margin-left: 9px;
+	margin-bottom: 2px;
+	box-shadow: 0px 0px 12px rgba(255,255,255,0.75);
+	border: 1px solid rgba(127,255,255,0.75);
+	background-color: rgba(127, 127, 127, 0.25);
+}
+canvas.barChart {
+	position: absolute;
+	bottom: 0px;
+}
+
+p#inputLabel {
+	padding-left: 10px;
+	padding-bottom: 12%;
+	font-size: 13px;
+	font-weight: bolder;
+}
+
+
+/*************************** /
+//     robot view
+*****************************/
 #robotView {
 	width: 0;
 	height: 0;
 	position: absolute;
 	background-color: rgba(255, 255, 255, 0);
-	border-color: rgba(255, 255, 0, 0.6);
+	border-color: rgba(0, 255, 255, 0.6);
+	box-shadow: 0px 0px 12px rgba(0,255,255,0.75);
 	margin: -4px;
-	border-width: 4px;
+	border-width: 3px;
 	border-style: solid;
 	right: 0;
 	top: 0;

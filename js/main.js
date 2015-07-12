@@ -7,22 +7,28 @@ var GRID = {
 	width: 800
 };
 var COMMAND = {
-	FORWARD: 0,
-	BACK: 1,
-	TURN_LEFT: 2,
-	TURN_RIGHT: 3,
+	FORWARD: {
+		action: 0,
+		text: "⇧ FORWARD"
+	},
+	BACK: {
+		action: 1,
+		text: "⇩ BACK"
+	},
+	TURN_LEFT: {
+		action: 2,
+		text: "⇦ LEFT"
+	},
+	TURN_RIGHT: {
+		action: 3,
+		text: "⇨ RIGHT"
+	},
 	LENGTH: 4
 };
-var COMMAND_TEXT = [
-	"⇧ FORWARD",
-	"⇩ BACK",
-	"⇦ LEFT",
-	"⇨ RIGHT"
-];
 var EYE_PARAM = {
 	COVER: Math.PI * 2,
 	NUM_EYES: 128,
-	DISTANCE: 650,
+	DISTANCE: 300,
 	DANGER_COLOR: 0xff0000,
 	SAFE_COLOR: 0xffff00,
 };
@@ -39,15 +45,27 @@ var CAR_INFO = {
 	ROTATE_AMOUNT: 2
 };
 var MODE = {
-	MANUAL: 0,
-	AUTO: 1,
+	MANUAL: {
+		switchStyle: "brightness(100%) hue-rotate(0deg)",
+		text: "MANUAL",
+		class: "inactive",
+	},
+	LEARNING: {
+		switchStyle: "brightness(150%) hue-rotate(190deg)",
+		text: "LEARNING",
+		class: "active",
+	},
+	FREEDOM: {
+		switchStyle: "brightness(150%) hue-rotate(250deg)",
+		text: "FREEDOM",
+		class: "safe",
+	}
 }
 
 
 /**********************
 // Global variable
 ***********************/
-var mode = MODE.AUTO;
 var keyState = {
 	up: false,
 	down: false,
@@ -69,7 +87,6 @@ var cars;
 var selected;
 var skydome;
 
-
 var debug;
 
 
@@ -77,6 +94,7 @@ var debug;
 // Car object definition
 // param.ID
 // param.src
+// param.mode
 // param.size
 // param.eyeParam
 ************************/
@@ -89,36 +107,31 @@ var Car = function(param) {
 	this.barChartCanvas = null;
 	this.IDTag = null;
 	this.ID = param.ID;
-	this.action = COMMAND.FORWARD;
+	this.command = COMMAND.FORWARD;
 	this.rewards = 0;
 	this.moveSucceeded = false;
 	this.brain = new deepqlearn.Brain(param.eyeParam.NUM_EYES, COMMAND.LENGTH);
 	this.size = param.size;
 	this.offsetY = this.size / 2;
+	this.mode = param.mode;
 
 	// create bar chart
 	this.barChartCanvas = document.createElement("canvas");
-	this.barChartCanvas.width = 800;
-	this.barChartCanvas.height = 110;
+	this.barChartCanvas.width = 820;
+	this.barChartCanvas.height = 100;
 	this.barChartCanvas.setAttribute("class", "barChart");
 	document.getElementById("barChartContainer").appendChild(this.barChartCanvas);
 
 	var ctx = this.barChartCanvas.getContext("2d");
     var gradient = ctx.createLinearGradient(0, 0, 0, 100);
-    gradient.addColorStop(0, 'rgba(100,250,100,1)');   
-    gradient.addColorStop(0.7, 'rgba(100,200,205,0.3)');
-    gradient.addColorStop(1, 'rgba(0,51,153,0.5)');   
-    
-    var gradient2 = ctx.createLinearGradient(0, 0, 0, 100);
-    gradient2.addColorStop(0, 'rgba(0,51,153,0.9)');   
-    gradient2.addColorStop(1, 'rgba(0,51,153,0)');
-
+    gradient.addColorStop(0, 'rgba(100,200,100,0.8)');   
+    gradient.addColorStop(0.5, 'rgba(100,200,205,0.6)');
+    gradient.addColorStop(1, 'rgba(0,51,153,0.4)');   
 	var data = {
 	    labels: [],
 	    datasets: [
 	        {
                 fillColor : gradient,
-                highlightFill: gradient2,
                 strokeColor : "rgba(151,187,205,1)",
  	            data: []
 	        }
@@ -139,7 +152,7 @@ var Car = function(param) {
 		showScale: false,
 		barValueSpacing: 0.7,
 		barDatasetSpacing: 1,
-		barStrokeWidth: 0.5,
+		barStrokeWidth: 0.9,
 		scaleShowLabels: false,
 		scaleShowLine: false,
 		scaleShowHorizontalLines: false,
@@ -256,28 +269,28 @@ var Car = function(param) {
 	}
 
 	// function to move car
-	this.move = function(action, delta) {
+	this.move = function(command, delta) {
 		var moveSucceeded = true;
 
-		if(action == COMMAND.TURN_RIGHT) {
+		if(command == COMMAND.TURN_RIGHT) {
 			this.mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
 			if(this.collisionDetection()) {
 				moveSucceeded = false;
 				this.mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
 			}
-		} else if(action == COMMAND.TURN_LEFT) {
+		} else if(command == COMMAND.TURN_LEFT) {
 			this.mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
 			if(this.collisionDetection()) {
 				moveSucceeded = false;
 				this.mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
 			}
-		} else if(action == COMMAND.FORWARD) {
+		} else if(command == COMMAND.FORWARD) {
 			this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 			if(this.collisionDetection()) {
 				moveSucceeded = false;
 				this.mesh.position.sub(this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 			}		
-		} else if(action == COMMAND.BACK) {
+		} else if(command == COMMAND.BACK) {
 			this.mesh.position.sub(this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 			if(this.collisionDetection()) {
 				moveSucceeded = false;
@@ -300,20 +313,47 @@ var Car = function(param) {
 		this.brain.learning = true;		
 	}
 
+	// switch mode
+	this.switchMode = function() {
+		switch(this.mode) {
+    		case MODE.MANUAL: {
+				this.mode = MODE.LEARNING;
+				this.startToLearn();
+    			break;
+    		}
+    		case MODE.LEARNING: {
+				this.mode = MODE.FREEDOM;
+				this.stopToLearn();
+    			break;
+    		}
+    		case MODE.FREEDOM: {
+				this.mode = MODE.MANUAL;
+				this.drawToHTML();			
+    			break;
+    		}
+		}
+	}
+
 	// function to think what action to do
 	this.think = function() {
 		var inputInfo = new Array();
 		for(var i = 0; i < this.eyes.length; i++) {
 			inputInfo.push(this.eyes[i].distance/param.eyeParam.DISTANCE);
 		}
-		this.action = this.brain.forward(inputInfo);
-		return this.action;
+		action = this.brain.forward(inputInfo);
+		for(var key in COMMAND) {
+			if(COMMAND[key].action == action) {
+				this.command = COMMAND[key];
+				break;
+			}
+		}
+		return this.command;
 	}
 
 	// function to do action
-	this.act = function(action, delta) {
-		this.action = action;
-		this.moveSucceeded = this.move(this.action, delta);
+	this.act = function(command, delta) {
+		this.command = command;
+		this.moveSucceeded = this.move(this.command, delta);
 
 		// compute rewards
 		// rewards of distance
@@ -325,7 +365,7 @@ var Car = function(param) {
 
 		// rewards of forward
 		var forwardRewards = 0;
-		if(action == COMMAND.FORWARD && distanceRewards > 0.7 && this.moveSucceeded) {
+		if(command == COMMAND.FORWARD && distanceRewards > 0.7 && this.moveSucceeded) {
 			forwardRewards = 0.1 * distanceRewards;
 		}
 
@@ -357,13 +397,24 @@ var Car = function(param) {
 		statusTag.innerHTML = "";
 		statusTag.appendChild(this.IDTag);
 
+		// mode tag
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("MODE"));
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode(this.mode.text));
+		spanTag.setAttribute("class", this.mode.class);
+		pTag.appendChild(spanTag);
+		statusTag.appendChild(pTag);
+
 		// action tag
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
 		spanTag.appendChild(document.createTextNode("ACTION"));
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode(COMMAND_TEXT[this.action]));
+		spanTag.appendChild(document.createTextNode(this.command.text));
 		pTag.appendChild(spanTag);
 		statusTag.appendChild(pTag);
 
@@ -468,14 +519,12 @@ function init() {
 	generateObstacles();
 
 	// generate skydome
-
 	var texture = THREE.ImageUtils.loadTexture("assets/textures/stars.jpg")
 	texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
 	var material = new THREE.MeshPhongMaterial({
 		shininess: 10,
 		side: THREE.DoubleSide,
-//		emissive: 0x444444,
 		map: texture
 	});
 	var sphere = new THREE.BoxGeometry(4200, 3000, 4200);
@@ -489,6 +538,7 @@ function init() {
 		src: "./assets/textures/tago.jpg",
 		size: CAR_INFO.SIZE,
 		eyeParam: EYE_PARAM,
+		mode: MODE.MANUAL
 	});
 	car.mesh.rotation.y += Math.PI;
 	scene.add(car.mesh);
@@ -497,6 +547,37 @@ function init() {
 	}
 	cars.push(car);
 	selected = 0;
+
+	// menu button
+	// switch
+	$(function() {
+	    $('#switch')
+	    .hover(
+	        function(){
+	            $(this).stop().animate({
+	                'width':'120px',
+	                'height':'120px',
+	                'marginTop': '-10px',
+	                'marginLeft':'-10px',
+	                'opacity': '0.9'
+	            },300);
+	        },
+	        function () {
+	            $(this).stop().animate({
+	                'width':'100px',
+	                'height':'100px',
+	                'marginTop': '0px',
+	                'marginLeft':'0px',
+	                'opacity': '0.6'
+	            },'fast');
+	        }
+	    ).click(function() {
+    		cars[selected].switchMode();
+            $(this).css({
+            	"-webkit-filter": cars[selected].mode.switchStyle
+			});	    	
+	    });
+	});
 
 	// window resize
 	window.addEventListener("resize", onWindowResize, false);
@@ -595,26 +676,33 @@ function animate() {
 	var time = clock.getElapsedTime() * 5;
 	controls.update(delta);
 
-	// do auto run
-	if(mode == MODE.AUTO) {
-		for(var i = 0; i < cars.length; i++) {
-			var action = cars[i].think();
-			cars[i].act(action, delta);
-			cars[i].drawToHTML();
+	for(var i = 0; i < cars.length; i++) {
+		switch(cars[i].mode) {
+			// do manual run
+			case MODE.MANUAL: {
+				manualAction(delta);
+				break;
+			}
+			// do auto run
+			case MODE.LEARNING:
+			case MODE.FREEDOM: {
+				var command = cars[i].think();
+				cars[i].act(command, delta);
+				cars[i].drawToHTML();
+				break;
+			}
 		}
-	} else {
-		manualAction(delta);
 	}
 
 	// update skydome
-	skydome.rotation.y += delta/10;
+	skydome.rotation.y += delta/20;
 
 	// rendering
 	renderer.autoClear = false;
 
 	// renderer to viewport
 	renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
-	renderer.render( scene, camera);
+	renderer.render(scene, camera);
 
 	// renderer robot camera
 	var robotCameraPos = cars[selected].directionVector.clone().multiplyScalar(cars[selected].size / 2);
