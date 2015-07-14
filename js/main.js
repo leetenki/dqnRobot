@@ -24,8 +24,6 @@ var EYE_PARAM = {
 	COVER: Math.PI * 2,
 	NUM_EYES: 128,
 	DISTANCE: 300,
-//	DANGER_COLOR: 0xff0000,
-//	WARNNING_COLOR: 0xff8800,
 	SAFE_COLOR: 0xffff00,
 };
 var OBJECT_TYPE = {
@@ -44,27 +42,49 @@ var OBJECT_TYPE = {
 	CAR: {
 		text: "CAR",
 	},
+	FLOOR: {
+		text: "FLOOR",
+	},
+	EYE_GROUP: {
+		text: "EYES",
+	},
 };
 var CAR_INFO = {
+	CAR_TEXTURE: "./assets/textures/tago.jpg",
 	SIZE: 50,
 	SPEED: 200,
 	ROTATE_AMOUNT: 2
 };
+
+// cursor mode
+var CURSOR_MODE = {
+	SELECT: 0,
+	DELETE: 1,
+	ADD_CAR: 2,
+	ADD_OBSTACLE: 3,
+}
+
+// deep learning mode
 var MODE = {
+	NONE: {
+		switchStyle: "brightness(100%) grayscale(90%)",
+		text: "NONE",
+		class: "",
+	},
 	MANUAL: {
 		switchStyle: "brightness(100%) hue-rotate(0deg)",
 		text: "MANUAL",
 		class: "inactive",
 	},
 	LEARNING: {
-		switchStyle: "brightness(150%) hue-rotate(190deg)",
+		switchStyle: "brightness(150%) hue-rotate(250deg)",
 		text: "LEARNING",
-		class: "active",
+		class: "safe",
 	},
 	FREEDOM: {
-		switchStyle: "brightness(150%) hue-rotate(250deg)",
+		switchStyle: "brightness(150%) hue-rotate(190deg)",
 		text: "FREEDOM",
-		class: "safe",
+		class: "active",
 	}
 }
 var COURSE = {
@@ -72,6 +92,8 @@ var COURSE = {
 	RANDOM: {
 		NUM_OBSTACLES: 50,
 		OBSTACLE_SIZE: 50,
+		FLOOR_TEXTURE: "./assets/textures/floor.jpg",
+		SKY_TEXTURE: "assets/textures/stars.jpg",
 		OBSTACLE_TEXTURE: "./assets/textures/crate.gif",
 		WALL_SIZE: 100,
 		WALL_TEXTURE: "./assets/textures/stone.jpg",	
@@ -85,12 +107,6 @@ var WORLD_INFO = {
 /**********************
 // Global variable
 ***********************/
-var keyState = {
-	up: false,
-	down: false,
-	left: false,
-	right: false
-}
 var clock = new THREE.Clock();
 var scene;
 var renderer;
@@ -101,10 +117,9 @@ var light;
 var delta = 0;
 var debug;
 
-var ui;
-var cars;
-var selected;
-var world;
+
+
+var env;
 
 
 
@@ -123,13 +138,13 @@ function init() {
 	document.body.appendChild(renderer.domElement);
 
 	// camera
-	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 4200);
+	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 4200);
 	camera.position.y = 400;
 	camera.position.z = 800;
 	camera.lookAt(new THREE.Vector3(0, 0, 0))
 
 	// robot camera
-	robotCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 4000);
+	robotCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 4200);
 
 	// controls
 	controls = new THREE.OrbitControls(camera);
@@ -141,50 +156,14 @@ function init() {
 	// scene
 	scene = new THREE.Scene();
 
+	// env
+	env = new Env();
+	env.initEnv(scene, camera);
+
 	// light
 	light = new THREE.PointLight();
 	light.position.set(300, 300, 300);
 	scene.add(light);
-
-	// World
-	world = new World(WORLD_INFO);
-	scene.add(world);
-
-	// generate car
-	cars = new Array();
-	var car = new Car({
-		ID: "CAR1",
-		src: "./assets/textures/tago.jpg",
-		size: CAR_INFO.SIZE,
-		eyeParam: EYE_PARAM,
-		mode: MODE.MANUAL
-	});
-	car.mesh.rotation.y += Math.PI;
-	world.putIntoWorld(car.mesh, car.mesh.position);
-	for(var i = 0; i < car.eyes.length; i++) {
-		world.add(car.eyes[i]);
-	}
-	cars.push(car);
-
-	var car = new Car({
-		ID: "CAR2",
-		src: "./assets/textures/tago.jpg",
-		size: CAR_INFO.SIZE,
-		eyeParam: EYE_PARAM,
-		mode: MODE.FREEDOM
-	});
-	car.mesh.rotation.y += Math.PI;
-	world.putIntoWorld(car.mesh, car.mesh.position);
-	for(var i = 0; i < car.eyes.length; i++) {
-		world.add(car.eyes[i]);
-	}
-	cars.push(car);
-	selected = 0;
-
-	// ui
-	ui = new UI();
-	ui.initHTML(cars[0]);
-	ui.drawHTML(cars[0]);
 
 	// window resize
 	window.addEventListener("resize", onWindowResize, false);
@@ -201,12 +180,6 @@ function init() {
 		renderer.setSize(window.innerWidth, window.innerHeight);
 	}
 	onWindowResize();
-
-	// onmouse move
-	window.addEventListener("mousemove", onMouseMove, false);
-	function onMouseMove(e) {
-		//console.log(e.clientX + ", " + e.clientY);
-	}
 }
 
 
@@ -217,28 +190,7 @@ function animate() {
 	var time = clock.getElapsedTime() * 5;
 	controls.update(delta);
 
-	for(var i = 0; i < cars.length; i++) {
-		switch(cars[i].mode) {
-			// do manual run
-			case MODE.MANUAL: {
-				manualAction(delta);
-				break;
-			}
-			// do auto run
-			case MODE.LEARNING:
-			case MODE.FREEDOM: {
-				var command = cars[i].think();
-				cars[i].act(command, delta);
-				if(i == selected) {
-					ui.drawHTML(cars[i]);
-				}
-				break;
-			}
-		}
-	}
-
-	// update world
-	world.update(delta);
+	env.update(delta);
 
 	// rendering
 	renderer.autoClear = false;
@@ -248,70 +200,21 @@ function animate() {
 	renderer.render(scene, camera);
 
 	// renderer robot camera
-	var robotCameraPos = cars[selected].directionVector.clone().multiplyScalar(cars[selected].size / 2);
-	robotCameraPos.addVectors(robotCameraPos, cars[selected].mesh.position);
-	robotCamera.position.set(robotCameraPos.x, robotCameraPos.y, robotCameraPos.z);
-	var robotLookAt = robotCameraPos.addVectors(robotCameraPos, cars[selected].directionVector.clone());
-	robotCamera.lookAt(robotLookAt);
+	var car = env.getCarSelected();
+	if(car) {
+		var robotCameraPos = car.directionVector.clone().multiplyScalar(car.cameraOffset);
+		robotCameraPos.addVectors(robotCameraPos, car.mesh.position);
+		robotCamera.position.set(robotCameraPos.x, robotCameraPos.y, robotCameraPos.z);
+		var robotLookAt = robotCameraPos.addVectors(robotCameraPos, car.directionVector.clone());
+		robotCamera.lookAt(robotLookAt);
+	} else {
+		robotCamera.position.set(camera.position.x, camera.position.y, camera.position.z);
+		robotCamera.rotation.set(camera.rotation.x, camera.rotation.y, camera.rotation.z);
+	}
 	renderer.setViewport(window.innerWidth/3*2, window.innerHeight/3*2, window.innerWidth/3, window.innerHeight/3);
 	renderer.clearDepth();
 	renderer.render(scene, robotCamera);
 }
 
-// keydown function
-function manualAction(delta) {
-	var acted = false;
-	if(keyState.up) {
-		cars[selected].act(COMMAND.FORWARD, delta);		
-		acted = true;
-	} else if(keyState.down) {
-		cars[selected].act(COMMAND.BACK, delta);
-		acted = true;
-	}
-	if(keyState.left) {
-		cars[selected].act(COMMAND.TURN_LEFT, delta);
-		acted = true;
-	} else if(keyState.right) {
-		cars[selected].act(COMMAND.TURN_RIGHT, delta);
-		acted = true;
-	}
-	if(acted) {
-		ui.drawHTML(cars[selected]);
-	}
-}
 
-// keyup function
-document.onkeyup = function(e) { 
-	switch(e.keyIdentifier) {
-		case "Down":
-			keyState.down = false;
-			break;
-		case "Up":
-			keyState.up = false;
-			break;
-		case "Left":
-			keyState.left = false;
-			break;
-		case "Right":
-			keyState.right = false;
-			break;
-	}
-}
 
-// keyup function
-document.onkeydown = function(e) { 
-	switch(e.keyIdentifier) {
-		case "Down":
-			keyState.down = true;
-			break;
-		case "Up":
-			keyState.up = true;
-			break;
-		case "Left":
-			keyState.left = true;
-			break;
-		case "Right":
-			keyState.right = true;
-			break;
-	}
-}

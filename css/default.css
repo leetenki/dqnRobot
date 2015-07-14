@@ -94,6 +94,12 @@ span {
 }
 .score {
 }
+.name {
+	width: 60px;
+}
+.usage {
+	width: 100px;
+}
 
 
 /*************************** /

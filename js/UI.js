@@ -1,7 +1,7 @@
 /***********************************/
 // UI to draw information to window
 /***********************************/
-var UI = function() {
+var UI = function(env) {
 	this.infoTag = document.getElementById("info");
 	this.statusTag = document.getElementById("status");
 	this.barChartContainer = document.getElementById("barChartContainer");
@@ -14,6 +14,7 @@ var UI = function() {
 	this.barChartCanvas = null;
 	this.averageDistanceTag = null;
 	this.switchImage = null;
+	this.env = env;
 
 	// alias this object to avoid conflict happens in inner function
 	var container = this;
@@ -80,6 +81,74 @@ var UI = function() {
 		//   init info tag
 		/****************************/
 		this.infoTag.innerHTML = "";
+
+		// Usage
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("USAGE："));
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// Shift
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "name");
+		spanTag.appendChild(document.createTextNode("SHIFT"));
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("CHANGE MODE"));
+		spanTag.setAttribute("class", "usage");
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// 1
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("KEY 1"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "usage");
+		spanTag.appendChild(document.createTextNode("SELECT CAR"));
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// 2
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("KEY 2"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "usage");
+		spanTag.appendChild(document.createTextNode("DELETE OBJECT"));
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// 3
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("KEY 3"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "usage");
+		spanTag.appendChild(document.createTextNode("APPEND CAR"));
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// 4
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("KEY 4"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "usage");
+		spanTag.appendChild(document.createTextNode("APPEND BOX"));
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
 
 		/*****************************
 		//   init status tag
@@ -177,9 +246,13 @@ var UI = function() {
 		        }
 		    ]
 		};
-		data.labels = new Array(car.eyes.length);
-		data.datasets[0].data = new Array(car.eyes.length);
-		for(var i = 0; i < car.eyes.length; i++) {
+		var dataLength = 1;
+		if(car) {
+			dataLength = car.eyes.length;
+		}
+		data.labels = new Array(dataLength);
+		data.datasets[0].data = new Array(dataLength);
+		for(var i = 0; i < dataLength; i++) {
 			data.labels[i] = "";
 			data.datasets[0].data[i] = 0;
 		}
@@ -209,35 +282,47 @@ var UI = function() {
 		**************************/
 		$(function() {
 		    container.switchImage = $('#switch');
-		    container.switchImage.css({
-		    	"-webkit-filter": car.mode.switchStyle
-		    });
+		    container.switchImage.off();
 
-		    container.switchImage.hover(
-		        function(){
-		            $(this).stop().animate({
-		                'width':'120px',
-		                'height':'120px',
-		                'marginTop': '-10px',
-		                'marginLeft':'-10px',
-		                'opacity': '0.9'
-		            },300);
-		        },
-		        function () {
-		            $(this).stop().animate({
-		                'width':'100px',
-		                'height':'100px',
-		                'marginTop': '0px',
-		                'marginLeft':'0px',
-		                'opacity': '0.6'
-		            },'fast');
-		        }
-		    ).click(function() {
-	    		cars[selected].switchMode();
-	            $(this).css({
-	            	"-webkit-filter": cars[selected].mode.switchStyle
-				});	    	
-		    });
+		    if(car) {
+			    container.switchImage.css({
+			    	"-webkit-filter": car.mode.switchStyle
+			    });
+
+			    container.switchImage.hover(
+			        function(){
+			            $(this).stop().animate({
+			                'width':'120px',
+			                'height':'120px',
+			                'marginTop': '-10px',
+			                'marginLeft':'-10px',
+			                'opacity': '0.9'
+			            },300);
+			        },
+			        function () {
+			            $(this).stop().animate({
+			                'width':'100px',
+			                'height':'100px',
+			                'marginTop': '0px',
+			                'marginLeft':'0px',
+			                'opacity': '0.6'
+			            },'fast');
+			        }
+			    ).click(function() {
+		    		var car = container.env.getCarSelected();
+		    		if(car) {
+			    		car.switchMode();
+						container.drawHTML(car);			
+			            $(this).css({
+			            	"-webkit-filter": car.mode.switchStyle
+						});
+			        }
+			    });
+			} else {
+			    container.switchImage.css({
+			    	"-webkit-filter": MODE.NONE.switchStyle
+			    });				
+			}
 		});
 	}
 

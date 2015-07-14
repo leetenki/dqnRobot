@@ -7,7 +7,7 @@
 // param.eyeParam
 ************************/
 
-var Car = function(param) {
+var Car = function(param, env) {
 	// object variables
 	this.mesh = null;
 	this.eyes = new Array();
@@ -17,10 +17,15 @@ var Car = function(param) {
 	this.rewards = 0;
 	this.moveSucceeded = true;
 	this.brain = new deepqlearn.Brain(param.eyeParam.NUM_EYES, COMMAND.LENGTH);
-	this.size = param.size;
+	this.size = param.size;       // the longest edge
+	this.cameraOffset = this.size / 2;
 	this.offsetY = this.size / 2;
 	this.mode = param.mode;
+	this.eyeGroup = new THREE.Mesh();
+	this.eyeGroup.objectType = OBJECT_TYPE.EYE_GROUP;
 	this.victim = null;  // used when collision happened
+	this.env = env;
+	this.world = env.world;
 
 	// define yAxis
 	var yAxis = new THREE.Vector3(0, 1, 0);
@@ -59,6 +64,7 @@ var Car = function(param) {
 		eye.angleY = startAngle + stepAngle * i;
 		eye.distance = 0;
 		this.eyes.push(eye);
+		this.eyeGroup.add(eye);
 
 		// compute distance offset
 		var ray = new THREE.Raycaster(this.mesh.position, this.directionVector.clone().applyAxisAngle(yAxis, eye.angleY));
@@ -79,7 +85,7 @@ var Car = function(param) {
 		this.directionVector = direction.applyMatrix4(matrix);
 
 		// get all objects of world
-		var allObjects = world.getEverythingExceptMe(this.mesh);
+		var allObjects = this.world.getEverythingExceptMe(this.mesh);
 
 		for(var i = 0; i < this.eyes.length; i++) {
 			// update each eye
@@ -111,25 +117,25 @@ var Car = function(param) {
 
 		if(command == COMMAND.TURN_RIGHT) {
 			this.mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
-			if(this.victim = world.collisionDetection(this.mesh)) {
+			if(this.victim = this.world.collisionDetection(this.mesh)) {
 				moveSucceeded = false;
 				this.mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
 			}
 		} else if(command == COMMAND.TURN_LEFT) {
 			this.mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
-			if(this.victime = world.collisionDetection(this.mesh)) {
+			if(this.victime = this.world.collisionDetection(this.mesh)) {
 				moveSucceeded = false;
 				this.mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
 			}
 		} else if(command == COMMAND.FORWARD) {
 			this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
-			if(this.victim = world.collisionDetection(this.mesh)) {
+			if(this.victim = this.world.collisionDetection(this.mesh)) {
 				moveSucceeded = false;
 				this.mesh.position.sub(this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 			}		
 		} else if(command == COMMAND.BACK) {
 			this.mesh.position.sub(this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
-			if(this.victim = world.collisionDetection(this.mesh)) {
+			if(this.victim = this.world.collisionDetection(this.mesh)) {
 				moveSucceeded = false;
 				this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
 			}
@@ -165,7 +171,6 @@ var Car = function(param) {
     		}
     		case MODE.FREEDOM: {
 				this.mode = MODE.MANUAL;
-				ui.drawHTML(this);			
     			break;
     		}
 		}
