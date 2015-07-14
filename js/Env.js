@@ -240,7 +240,7 @@ var Env = function() {
 			src: CAR_INFO.CAR_TEXTURE,
 			size: CAR_INFO.SIZE,
 			eyeParam: EYE_PARAM,
-			mode: MODE.MANUAL,
+			mode: MODE.LEARNING,
 		}, this);
 		car.mesh.rotation.y = Math.PI;
 
