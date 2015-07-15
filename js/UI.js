@@ -149,7 +149,7 @@ var UI = function(env) {
 		// 1
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("KEY 1"));
+		spanTag.appendChild(document.createTextNode("KEY [1]"));
 		spanTag.setAttribute("class", "name");
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
@@ -164,7 +164,7 @@ var UI = function(env) {
 		// 2
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("KEY 2"));
+		spanTag.appendChild(document.createTextNode("KEY [2]"));
 		spanTag.setAttribute("class", "name");
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
@@ -179,7 +179,7 @@ var UI = function(env) {
 		// 3
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("KEY 3"));
+		spanTag.appendChild(document.createTextNode("KEY [3]"));
 		spanTag.setAttribute("class", "name");
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
@@ -194,7 +194,7 @@ var UI = function(env) {
 		// 4
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("KEY 4"));
+		spanTag.appendChild(document.createTextNode("KEY [4]"));
 		spanTag.setAttribute("class", "name");
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
@@ -209,7 +209,7 @@ var UI = function(env) {
 		// 5
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("KEY 5"));
+		spanTag.appendChild(document.createTextNode("KEY [5]"));
 		spanTag.setAttribute("class", "name");
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
@@ -291,6 +291,22 @@ var UI = function(env) {
 				break;
 			}
 		}
+
+		// save world
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("KEY [J]"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "usage");
+		spanTag.appendChild(document.createTextNode("SAVE WORLD"));
+		spanTag.onclick = function() {
+			container.env.saveWorldJSON();
+		}
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
 
 		/*****************************
 		//   init status tag

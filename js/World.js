@@ -449,5 +449,64 @@ var World = function() {
 		}
 	}
 
+
+	// function to output everthing to json file
+	container.getJSON = function() {
+		var output = {};
+		
+		// walls
+		output.walls = new Array();
+		for(var i = 0; i < container.walls.length; i++) {
+			output.walls.push({
+				position: {
+					x: container.walls[i].position.x,
+					y: container.walls[i].position.y,
+					z: container.walls[i].position.z
+				},
+				rotation: {
+					x: container.walls[i].rotation.x,
+					y: container.walls[i].rotation.y,
+					z: container.walls[i].rotation.z
+				}
+			});
+		}
+
+		// obstacles
+		output.obstacles = new Array();
+		for(var i = 0; i < container.obstacles.length; i++) {
+			output.obstacles.push({
+				position: {
+					x: container.obstacles[i].position.x,
+					y: container.obstacles[i].position.y,
+					z: container.obstacles[i].position.z
+				},
+				rotation: {
+					x: container.obstacles[i].rotation.x,
+					y: container.obstacles[i].rotation.y,
+					z: container.obstacles[i].rotation.z
+				}
+			});
+		}
+
+		// items
+		output.items = new Array();
+		for(var i = 0; i < container.items.length; i++) {
+			output.items.push({
+				position: {
+					x: container.items[i].position.x,
+					y: container.items[i].position.y,
+					z: container.items[i].position.z
+				},
+				rotation: {
+					x: container.items[i].rotation.x,
+					y: container.items[i].rotation.y,
+					z: container.items[i].rotation.z
+				}
+			});
+		}
+		return JSON.stringify(output);
+	}
+
+
 	return container;
 }

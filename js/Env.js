@@ -542,6 +542,9 @@ var Env = function() {
 			case 87: // W
 				container.keyMap.W = true;
 				break;
+			case 74: // J
+				container.saveWorldJSON();
+				break;
 			case 49: //1
 				container.switchCursorMode(CURSOR_MODE.SELECT);
 				break;
@@ -748,6 +751,12 @@ var Env = function() {
 		}
 	}
 
+	// function to save json 
+	container.saveWorldJSON = function() {
+		var blob = new Blob([container.world.getJSON()], {"type" : "text/plain"});
+		window.URL = window.URL || window.webkitURL;
+		window.open(window.URL.createObjectURL(blob), "target");	
+	}
 
 	return this;
 }
