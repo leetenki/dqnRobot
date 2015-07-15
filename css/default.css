@@ -106,6 +106,17 @@ span {
 	cursor: pointer;
 	color: rgba(200, 255, 255, 1);
 }
+.prebuilt {	
+	color: rgba(200,200,0,0.8);
+	text-shadow: 0 0 8px rgba(200,200,200,1);	
+	width: 100px;
+}
+.prebuilt:hover {
+	color: rgba(255,255,0,0.7);
+	text-shadow: 0 0 8px rgba(244,200,200,1);	
+	width: 100px;
+	cursor: pointer;
+}
 hr {
 	width: 100%;
 	border-color: rgba(100, 200, 255, 0.6);

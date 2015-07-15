@@ -53,11 +53,12 @@ var Env = function() {
 		}
 
 		// init world
-		this.world.initWorld(WORLD_INFO);
+		//this.world.initWorld(WORLD_INFO);
+		this.world.initWorldFromJSON(WORLD_INFO, prebuiltWorldJSON[0]);
 		this.scene.add(this.world);
 
 		// init cars
-		this.addCar(new THREE.Vector3(Math.random(), Math.random(), Math.random()));
+		this.addCar(new THREE.Vector3(300, 0, 0));
 
 
 		// init ui
@@ -355,7 +356,7 @@ var Env = function() {
 		if(rotation) {
 			car.mesh.rotation.set(rotation.x, rotation.y, rotation.z);
 		} else {
-			car.mesh.rotation.y = Math.PI;
+			car.mesh.rotation.y = -Math.PI;
 		}
 
 		// add car
@@ -486,9 +487,54 @@ var Env = function() {
 		}
 	}		
 
+	// load world and brain from json text
+	container.loadFromJSON = function(jsonText) {
+	    var data = JSON.parse(jsonText);
+	    if(data.layers) { // is brain.json
+	    	if(container.cars.length && container.selected != -1) {
+	    		container.cars[container.selected].brain.learning = false;
+	    		container.cars[container.selected].brain.epsilon_test_time = 0.05;
+	    		container.cars[container.selected].brain.value_net.fromJSON(data);
+	    		container.cars[container.selected].mode = MODE.FREEDOM;
+	    	}
+	    } else if(data.obstacles) { // is world.json
+			container.world.initWorldFromJSON(WORLD_INFO, jsonText);
+			var car = null;
+			if(container.cars.length && container.selected != -1) {
+				car = container.cars[container.selected];
+				container.world.putIntoWorld(car.mesh, car.mesh.position);
+				container.world.add(car.eyeGroup);
+			}
+
+			// init ui
+			container.ui.initHTML(car);
+			container.ui.drawHTML(car);
+	    }		
+	}	
+
 	/***************************/
 	//  event controller
 	/***************************/
+	// cancel dragover
+ 	document.body.ondragover = function(event){ 
+	    event.preventDefault(); 
+	} 
+	
+	// add drop event
+	document.body.ondrop = function(event){ 
+	    var files = event.dataTransfer.files;
+	    var files_info = "";
+	    for (var i=0; i<files.length; i++) {
+			var reader = new FileReader();
+			reader.readAsText(files[0]);
+			reader.onload = function(ev){
+			    jsonText = reader.result;
+			    container.loadFromJSON(jsonText);
+			}
+	    }
+	    event.preventDefault(); 
+	}
+
 	// keyup function
 	document.onkeyup = function(e) { 
 		switch(e.keyCode) {
@@ -529,6 +575,7 @@ var Env = function() {
 
 	// keyup function
 	document.onkeydown = function(e) { 
+		console.log(e.keyCode);
 		switch(e.keyCode) {
 			case 65: // A
 				container.keyMap.A = true;
@@ -544,6 +591,12 @@ var Env = function() {
 				break;
 			case 74: // J
 				container.saveWorldJSON();
+				break;
+			case 66: // B
+				container.saveBrainJSON();
+				break;
+			case 77: // M
+				//container.saveBrainJSON();
 				break;
 			case 49: //1
 				container.switchCursorMode(CURSOR_MODE.SELECT);
@@ -751,11 +804,20 @@ var Env = function() {
 		}
 	}
 
+	// function to save brain json
+	container.saveBrainJSON = function() {
+		if(this.cars.length && this.selected != -1) {
+			var blob = new Blob([JSON.stringify(this.cars[this.selected].brain.value_net.toJSON())], {"type" : "text/plain"});
+			window.URL = window.URL || window.webkitURL;
+			window.open(window.URL.createObjectURL(blob), "target");
+		}
+	}
+
 	// function to save json 
 	container.saveWorldJSON = function() {
 		var blob = new Blob([container.world.getJSON()], {"type" : "text/plain"});
 		window.URL = window.URL || window.webkitURL;
-		window.open(window.URL.createObjectURL(blob), "target");	
+		window.open(window.URL.createObjectURL(blob), "target");
 	}
 
 	return this;

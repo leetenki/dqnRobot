@@ -63,8 +63,14 @@ var Car = function(param, env) {
 	eye.distance;   // distance to target.
 	eye.distanceOffset // distance inside box.
 	**********************/
-	var stepAngle = param.eyeParam.COVER / (param.eyeParam.NUM_EYES);
+	var stepAngle = param.eyeParam.COVER / (param.eyeParam.NUM_EYES - 1);
 	var startAngle = -param.eyeParam.COVER / 2;
+
+	if(param.eyeParam.COVER >= Math.PI * 2) {
+		stepAngle = param.eyeParam.COVER / (param.eyeParam.NUM_EYES);
+		startAngle = (param.eyeParam.COVER - stepAngle) / -2;
+	}
+
 	this.mesh.rotationAutoUpdate = true;
 	this.mesh.updateMatrix();
 	this.mesh.updateMatrixWorld();
@@ -223,8 +229,10 @@ var Car = function(param, env) {
 
 		// rewards of forward
 		var forwardRewards = 0;
-		if(command == COMMAND.FORWARD && distanceRewards > 0.7 && this.moveSucceeded) {
+		if(command == COMMAND.FORWARD && distanceRewards > 0.3 && this.moveSucceeded) {
 			forwardRewards = 0.1 * distanceRewards;
+		} else if(command == COMMAND.BACK) {
+			forwardRewards = -0.2;
 		}
 
 		// penalty  

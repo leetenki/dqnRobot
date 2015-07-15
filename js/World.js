@@ -100,11 +100,119 @@ var World = function() {
 	}
 
 
+
+	// function to init world from json file
+	container.initWorldFromJSON = function(param, json) {
+		// initialize everything
+		container.clearWorld();
+		container.param = param;
+		container.worldSize = param.WORLD_SIZE;
+
+		// parse json data to world data
+		var worldData = JSON.parse(json);
+
+		// world half size
+		var halfSize = param.WORLD_SIZE / 2;
+
+		// floor
+		var geometry = new THREE.PlaneGeometry(param.WORLD_SIZE, param.WORLD_SIZE);
+		var texture = THREE.ImageUtils.loadTexture(param.COURSE.FLOOR_TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshBasicMaterial({
+			side: THREE.DoubleSide, 
+			map: texture,
+			transparent: false, 
+			opacity: 1,
+		});
+		container.floor = new THREE.Mesh(geometry, material);
+		container.floor.rotateX(-Math.PI/2);
+		container.floor.position.y -= 3;
+		container.floor.objectType = OBJECT_TYPE.FLOOR;
+		container.floor.updateMatrix();
+		container.floor.updateMatrixWorld();
+		container.add(container.floor);
+
+		// generate skydome
+		var texture = THREE.ImageUtils.loadTexture(param.COURSE.SKY_TEXTURE)
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshPhongMaterial({
+			shininess: 10,
+			side: THREE.DoubleSide,
+			map: texture
+		});
+		var sphere = new THREE.BoxGeometry(4200, 3300, 4200);
+		container.skydome = new THREE.Mesh(sphere, material);
+		container.skydome.updateMatrix();
+		container.skydome.updateMatrixWorld();
+		container.add(container.skydome);
+
+		// walls
+		var size = param.COURSE.WALL_SIZE;
+		var geometry = new THREE.BoxGeometry(size, size, size);
+		var texture = THREE.ImageUtils.loadTexture(param.COURSE.WALL_TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+	    var material = new THREE.MeshBasicMaterial({map: texture, transparent: true, opacity: 0.8});
+		for(var i = 0; i < worldData.walls.length; i++) {
+			var mesh = new THREE.Mesh(geometry, material);
+			mesh.position.set(worldData.walls[i].position.x, worldData.walls[i].position.y, worldData.walls[i].position.z);
+			mesh.rotation.x = worldData.walls[i].rotation.x;
+			mesh.rotation.y = worldData.walls[i].rotation.y;
+			mesh.rotation.z = worldData.walls[i].rotation.z;
+			mesh.objectType = OBJECT_TYPE.WALL;
+			container.add(mesh);
+			container.walls.push(mesh);
+			mesh.updateMatrix();
+			mesh.updateMatrixWorld();
+		}
+
+		// obstacles
+		var size = param.COURSE.OBSTACLE_SIZE;
+		var geometry = new THREE.BoxGeometry(size, size, size);
+		var texture = THREE.ImageUtils.loadTexture(param.COURSE.OBSTACLE_TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshPhongMaterial({map: texture});
+		this.basicObstacle = new THREE.Mesh(geometry, material);
+		for(var i = 0; i < worldData.obstacles.length; i++) {
+			var mesh = this.basicObstacle.clone();
+			container.putIntoWorld(mesh);
+			mesh.position.set(worldData.obstacles[i].position.x, worldData.obstacles[i].position.y, worldData.obstacles[i].position.z);
+			mesh.rotation.x = worldData.obstacles[i].rotation.x;
+			mesh.rotation.y = worldData.obstacles[i].rotation.y;
+			mesh.rotation.z = worldData.obstacles[i].rotation.z;
+			mesh.updateMatrix();
+			mesh.updateMatrixWorld();
+			mesh.objectType = OBJECT_TYPE.OBSTACLE;
+			container.obstacles.push(mesh);
+		}
+
+		// items
+		var size = param.COURSE.ITEM_SIZE;
+		var geometry = new THREE.BoxGeometry(size, size, size);
+		var texture = THREE.ImageUtils.loadTexture(param.COURSE.ITEM_TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshBasicMaterial({map: texture, transparent: true});
+		this.basicItem = new THREE.Mesh(geometry, material);
+		for(var i = 0; i < worldData.items.length; i++) {
+			var mesh = this.basicItem.clone();
+			mesh.position.set(worldData.items[i].position.x, worldData.items[i].position.y, worldData.items[i].position.z);
+			mesh.rotation.x = worldData.items[i].rotation.x;
+			mesh.rotation.y = worldData.items[i].rotation.y;
+			mesh.rotation.z = worldData.items[i].rotation.z;
+			mesh.objectType = OBJECT_TYPE.OBSTACLE;
+			container.putIntoWorld(mesh);
+			container.obstacles.push(mesh);
+		}
+	}
+
 	// function to init world
 	container.initWorld = function(param) {
 		// initialize everything
 		container.clearWorld();
-		console.log(this.children);
 		container.param = param;
 		container.worldSize = param.WORLD_SIZE;
 
@@ -161,6 +269,8 @@ var World = function() {
 				var size = param.COURSE.WALL_SIZE;
 				var geometry = new THREE.BoxGeometry(size, size, size);
 				var texture = THREE.ImageUtils.loadTexture(param.COURSE.WALL_TEXTURE);
+				texture.magFilter = THREE.NearestFilter;
+	    		texture.minFilter = THREE.NearestFilter;
 				var material = new THREE.MeshBasicMaterial({map: texture, transparent: true, opacity: 0.8});
 				for(var x = -halfSize; x <= halfSize; x += size) {
 					var mesh = new THREE.Mesh(geometry, material);

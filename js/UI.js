@@ -124,12 +124,32 @@ var UI = function(env) {
 		/****************************/
 		this.infoTag.innerHTML = "";
 
-		// Usage
+
+		// mouse cursor
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("USAGE："));
+		spanTag.appendChild(document.createTextNode("CURSOR"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		this.cursorTag = document.createElement("span");
+		pTag.appendChild(this.cursorTag);
+		this.cursorImage = document.createElement("span");
+		pTag.appendChild(this.cursorImage);
+		this.infoTag.appendChild(pTag);
+
+
+		// hr line
+		var hrTag = document.createElement("hr");
+		this.infoTag.appendChild(hrTag);
+
+
+		// cursor
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("CURSOR："));
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
+
 
 		// Shift
 		var pTag = document.createElement("p");
@@ -199,7 +219,7 @@ var UI = function(env) {
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "usage");
-		spanTag.appendChild(document.createTextNode("APPEND BOX"));
+		spanTag.appendChild(document.createTextNode("APPEND CUBE"));
 		spanTag.onclick = function() {
 			container.env.switchCursorMode(CURSOR_MODE.ADD_OBSTACLE);
 		}
@@ -225,18 +245,101 @@ var UI = function(env) {
 		var hrTag = document.createElement("hr");
 		this.infoTag.appendChild(hrTag);
 
-		// mouse cursor
+		// file
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("CURSOR"));
-		spanTag.setAttribute("class", "name");
+		spanTag.appendChild(document.createTextNode("FILE："));
 		pTag.appendChild(spanTag);
-		this.cursorTag = document.createElement("span");
-		pTag.appendChild(this.cursorTag);
-		this.cursorImage = document.createElement("span");
-		pTag.appendChild(this.cursorImage);
 		this.infoTag.appendChild(pTag);
 
+		// save world
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("KEY [J]"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "usage");
+		spanTag.appendChild(document.createTextNode("SAVE WORLD"));
+		spanTag.onclick = function() {
+			container.env.saveWorldJSON();
+		}
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// save brain
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("KEY [B]"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "usage");
+		spanTag.appendChild(document.createTextNode("SAVE BRAIN"));
+		spanTag.onclick = function() {
+			container.env.saveBrainJSON();
+		}
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// drag and drop usage
+		var pTag = document.createElement("p");
+		pTag.appendChild(document.createTextNode("DRAG & DROP TO READ"));
+		this.infoTag.appendChild(pTag);
+
+		// hr line
+		var hrTag = document.createElement("hr");
+		this.infoTag.appendChild(hrTag);
+
+
+		// prebuilt world
+		var pTag = document.createElement("p");
+		pTag.appendChild(document.createTextNode("PREBUILT WORLD:"));
+		this.infoTag.appendChild(pTag);
+
+		// stage1
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("STAGE1"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "prebuilt");
+		spanTag.appendChild(document.createTextNode("CURVE COURSE"));
+		spanTag.onclick = function() {
+			container.env.loadFromJSON(prebuiltWorldJSON[0]);
+		}
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// hr line
+		var hrTag = document.createElement("hr");
+		this.infoTag.appendChild(hrTag);
+
+
+		// prebuilt brain
+		var pTag = document.createElement("p");
+		pTag.appendChild(document.createTextNode("TRAINED BRAIN:"));
+		this.infoTag.appendChild(pTag);
+
+		// brain 1
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("BRAIN1"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "prebuilt");
+		spanTag.appendChild(document.createTextNode("FAST MOVE"));
+		spanTag.onclick = function() {
+			container.env.loadFromJSON(prebuiltBrainJSON[0]);
+		}
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// hr line
+		var hrTag = document.createElement("hr");
+		this.infoTag.appendChild(hrTag);
 
 
 		/***************************
@@ -291,22 +394,6 @@ var UI = function(env) {
 				break;
 			}
 		}
-
-		// save world
-		var pTag = document.createElement("p");
-		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("KEY [J]"));
-		spanTag.setAttribute("class", "name");
-		pTag.appendChild(spanTag);
-		spanTag = document.createElement("span");
-		spanTag.setAttribute("class", "usage");
-		spanTag.appendChild(document.createTextNode("SAVE WORLD"));
-		spanTag.onclick = function() {
-			container.env.saveWorldJSON();
-		}
-		pTag.appendChild(spanTag);
-		this.infoTag.appendChild(pTag);
-
 
 		/*****************************
 		//   init status tag
