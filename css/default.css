@@ -98,8 +98,55 @@ span {
 	width: 60px;
 }
 .usage {
+	color: rgba(100,200,255,1);
+	text-shadow: 0 0 8px rgba(200,200,255,1);	
 	width: 100px;
 }
+.usage:hover {
+	cursor: pointer;
+	color: rgba(200, 255, 255, 1);
+}
+hr {
+	width: 100%;
+	border-color: rgba(100, 200, 255, 0.6);
+	margin: 7px 0;
+}
+img#selectCursor {
+	width: 30px;
+	mix-blend-mode: lighten;
+	position: absolute;
+	top: -4px;
+	right: 10px;
+}
+img#deleteCursor {
+	width: 30px;
+	mix-blend-mode: lighten;
+	position: absolute;
+	top: -4px;
+	right: 10px;
+}
+img#addCarCursor {
+	width: 30px;
+	mix-blend-mode: lighten;
+	position: absolute;
+	top: -4px;
+	right: 10px;
+}
+img#addObstacleCursor {
+	width: 30px;
+	mix-blend-mode: screen;
+	position: absolute;
+	top: -4px;
+	right: 10px;
+}
+img#addItemCursor {
+	width: 30px;
+	mix-blend-mode: screen;
+	position: absolute;
+	top: -4px;
+	right: 10px;
+}
+
 
 
 /*************************** /

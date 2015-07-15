@@ -7,6 +7,22 @@
 // param.eyeParam
 ************************/
 
+var CarMesh = function(param, env) {
+	var size = param.size;       // the longest edge
+	var offsetY = size / 2;
+
+	var geometry = new THREE.BoxGeometry(size, size, size);
+	var texture = THREE.ImageUtils.loadTexture(param.src);
+	texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+	var material = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide});
+	var mesh = new THREE.Mesh(geometry, material);
+	mesh.position.y = offsetY;
+	mesh.objectType = OBJECT_TYPE.CAR;
+
+	return mesh;
+}
+
 var Car = function(param, env) {
 	// object variables
 	this.mesh = null;
@@ -35,7 +51,7 @@ var Car = function(param, env) {
 	var texture = THREE.ImageUtils.loadTexture(param.src);
 	texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
-	var material = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide});
+	var material = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide, transparent: true});
 	this.mesh = new THREE.Mesh(geometry, material);
 	this.mesh.position.y = this.offsetY;
 	this.mesh.objectType = OBJECT_TYPE.CAR;
@@ -46,8 +62,8 @@ var Car = function(param, env) {
 	eye.target;     // what that eye can see. target mesh or null
 	eye.distance;   // distance to target.
 	eye.distanceOffset // distance inside box.
-	**********************/	
-	var stepAngle = param.eyeParam.COVER / (param.eyeParam.NUM_EYES - 1);
+	**********************/
+	var stepAngle = param.eyeParam.COVER / (param.eyeParam.NUM_EYES);
 	var startAngle = -param.eyeParam.COVER / 2;
 	this.mesh.rotationAutoUpdate = true;
 	this.mesh.updateMatrix();

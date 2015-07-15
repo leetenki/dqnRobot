@@ -10,6 +10,13 @@ var UI = function(env) {
 	this.actionTag = null;
 	this.resultTag = null;
 	this.victimTag = null;
+	this.cursorTag = null;
+	this.cursorImage = null;
+	this.deleteCursorImage = null;
+	this.selectCursorImage = null;
+	this.addCarCursorImage = null;
+	this.addObstacleCursorImage = null;
+	this.addItemCursorImage = null;
 	this.barChart = null;
 	this.barChartCanvas = null;
 	this.averageDistanceTag = null;
@@ -21,58 +28,93 @@ var UI = function(env) {
 
 	// redraw to html
 	this.drawHTML = function(car) {
-		// ID
-		this.IDTag.innerHTML = "";
-		this.IDTag.appendChild(document.createTextNode(car.ID));
+		// CURSOR
+		this.cursorTag.innerHTML = "";
+		this.cursorTag.appendChild(document.createTextNode(this.env.cursorMode.text));
 
-		// mode
-		this.modeTag.innerHTML = "";
-		this.modeTag.appendChild(document.createTextNode(car.mode.text));
-		this.modeTag.setAttribute("class", car.mode.class);
-
-		// action
-		this.actionTag.innerHTML = "";
-		this.actionTag.appendChild(document.createTextNode(car.command.text));
-
-		// result
-		this.resultTag.innerHTML = "";
-		if(!car.moveSucceeded) {
-			this.resultTag.setAttribute("class", "danger");
-			this.resultTag.appendChild(document.createTextNode("COLLISION!!"));
-		} else {
-			this.resultTag.setAttribute("class", "safe");
-			this.resultTag.appendChild(document.createTextNode("SAFE"));		
+		// CURSOR image
+		this.cursorImage.innerHTML = "";
+		switch(this.env.cursorMode) {
+			case CURSOR_MODE.DELETE: {
+				this.cursorImage.appendChild(this.deleteCursorImage);
+				break;
+			}
+			case CURSOR_MODE.ADD_CAR: {
+				this.cursorImage.appendChild(this.addCarCursorImage);
+				break;
+			}
+			case CURSOR_MODE.ADD_OBSTACLE: {
+				this.cursorImage.appendChild(this.addObstacleCursorImage);
+				break;
+			}
+			case CURSOR_MODE.ADD_ITEM: {
+				this.cursorImage.appendChild(this.addItemCursorImage);
+				break;
+			}
+			default:
+			case CURSOR_MODE.SELECT: {
+				this.cursorImage.appendChild(this.selectCursorImage);
+				break;
+			}
 		}
 
-		// victim
-		this.victimTag.innerHTML = "";
-		if(car.victim) {
-			this.victimTag.appendChild(document.createTextNode(car.victim.objectType.text));
+		
+		// update information depends on car
+		if(car) {
+			// ID
+			this.IDTag.innerHTML = "";
+			this.IDTag.appendChild(document.createTextNode(car.ID));
+
+			// mode
+			this.modeTag.innerHTML = "";
+			this.modeTag.appendChild(document.createTextNode(car.mode.text));
+			this.modeTag.setAttribute("class", car.mode.class);
+
+			// action
+			this.actionTag.innerHTML = "";
+			this.actionTag.appendChild(document.createTextNode(car.command.text));
+
+			// result
+			this.resultTag.innerHTML = "";
+			if(!car.moveSucceeded) {
+				this.resultTag.setAttribute("class", "danger");
+				this.resultTag.appendChild(document.createTextNode("COLLISION!!"));
+			} else {
+				this.resultTag.setAttribute("class", "safe");
+				this.resultTag.appendChild(document.createTextNode("SAFE"));		
+			}
+
+			// victim
+			this.victimTag.innerHTML = "";
+			if(car.victim) {
+				this.victimTag.appendChild(document.createTextNode(car.victim.objectType.text));
+			}
+
+			// rewards
+			this.rewardsTag.innerHTML = "";
+			this.rewardsTag.appendChild(document.createTextNode(car.rewards.toFixed(2)));
+
+			// update barchart label
+			this.averageDistanceTag.innerHTML = "";
+			var averageDistance = 0;
+			for(var i = 0; i < car.eyes.length; i++) {
+				averageDistance += car.eyes[i].distance;
+			}
+			averageDistance /= car.eyes.length;
+			this.averageDistanceTag.appendChild(document.createTextNode(averageDistance.toFixed(2)));
+
+			// update barchart graph
+			for(var i = 0; i < car.eyes.length; i++) {
+				this.barChart.datasets[0].bars[i].value = car.eyes[i].distance;
+			}
+			this.barChart.update();
+
+			// switch image
+		    this.switchImage.css({
+		    	"-webkit-filter": car.mode.switchStyle
+			});
 		}
 
-		// rewards
-		this.rewardsTag.innerHTML = "";
-		this.rewardsTag.appendChild(document.createTextNode(car.rewards.toFixed(2)));
-
-		// update barchart label
-		this.averageDistanceTag.innerHTML = "";
-		var averageDistance = 0;
-		for(var i = 0; i < car.eyes.length; i++) {
-			averageDistance += car.eyes[i].distance;
-		}
-		averageDistance /= car.eyes.length;
-		this.averageDistanceTag.appendChild(document.createTextNode(averageDistance.toFixed(2)));
-
-		// update barchart graph
-		for(var i = 0; i < car.eyes.length; i++) {
-			this.barChart.datasets[0].bars[i].value = car.eyes[i].distance;
-		}
-		this.barChart.update();
-
-		// switch image
-	    this.switchImage.css({
-	    	"-webkit-filter": car.mode.switchStyle
-		});
 	}
 
 	// initialize all tag
@@ -98,6 +140,9 @@ var UI = function(env) {
 		spanTag = document.createElement("span");
 		spanTag.appendChild(document.createTextNode("CHANGE MODE"));
 		spanTag.setAttribute("class", "usage");
+		spanTag.onclick = function() {
+			container.env.switchCursorMode();
+		}
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
 
@@ -110,6 +155,9 @@ var UI = function(env) {
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "usage");
 		spanTag.appendChild(document.createTextNode("SELECT CAR"));
+		spanTag.onclick = function() {
+			container.env.switchCursorMode(CURSOR_MODE.SELECT);
+		}
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
 
@@ -122,6 +170,9 @@ var UI = function(env) {
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "usage");
 		spanTag.appendChild(document.createTextNode("DELETE OBJECT"));
+		spanTag.onclick = function() {
+			container.env.switchCursorMode(CURSOR_MODE.DELETE);
+		}
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
 
@@ -134,6 +185,9 @@ var UI = function(env) {
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "usage");
 		spanTag.appendChild(document.createTextNode("APPEND CAR"));
+		spanTag.onclick = function() {
+			container.env.switchCursorMode(CURSOR_MODE.ADD_CAR);
+		}
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
 
@@ -146,9 +200,97 @@ var UI = function(env) {
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "usage");
 		spanTag.appendChild(document.createTextNode("APPEND BOX"));
+		spanTag.onclick = function() {
+			container.env.switchCursorMode(CURSOR_MODE.ADD_OBSTACLE);
+		}
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
 
+		// 5
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("KEY 5"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "usage");
+		spanTag.appendChild(document.createTextNode("APPEND ITEM"));
+		spanTag.onclick = function() {
+			container.env.switchCursorMode(CURSOR_MODE.ADD_ITEM);
+		}
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
+		// hr line
+		var hrTag = document.createElement("hr");
+		this.infoTag.appendChild(hrTag);
+
+		// mouse cursor
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("CURSOR"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		this.cursorTag = document.createElement("span");
+		pTag.appendChild(this.cursorTag);
+		this.cursorImage = document.createElement("span");
+		pTag.appendChild(this.cursorImage);
+		this.infoTag.appendChild(pTag);
+
+
+
+		/***************************
+		// init cursor images
+		***************************/
+		// delete cursor image
+		this.deleteCursorImage = document.createElement("img");
+		this.deleteCursorImage.setAttribute("src", CURSOR_MODE.DELETE.TEXTURE);
+		this.deleteCursorImage.setAttribute("id", "deleteCursor");
+
+		// select cursor image
+		this.selectCursorImage = document.createElement("img");
+		this.selectCursorImage.setAttribute("src", CURSOR_MODE.SELECT.TEXTURE);
+		this.selectCursorImage.setAttribute("id", "selectCursor");
+
+		// add car cursor image
+		this.addCarCursorImage = document.createElement("img");
+		this.addCarCursorImage.setAttribute("src", CURSOR_MODE.ADD_CAR.TEXTURE);
+		this.addCarCursorImage.setAttribute("id", "addCarCursor");
+
+		// add obstacle cursor image
+		this.addObstacleCursorImage = document.createElement("img");
+		this.addObstacleCursorImage.setAttribute("src", CURSOR_MODE.ADD_OBSTACLE.TEXTURE);
+		this.addObstacleCursorImage.setAttribute("id", "addObstacleCursor");
+
+		// add item cursor image
+		this.addItemCursorImage = document.createElement("img");
+		this.addItemCursorImage.setAttribute("src", CURSOR_MODE.ADD_ITEM.TEXTURE);
+		this.addItemCursorImage.setAttribute("id", "addItemCursor");
+
+		// draw cursor info to html
+		switch(this.env.cursorMode) {
+			case CURSOR_MODE.DELETE: {
+				this.cursorImage.appendChild(this.deleteCursorImage);
+				break;
+			}
+			case CURSOR_MODE.ADD_CAR: {
+				this.cursorImage.appendChild(this.addCarCursorImage);
+				break;
+			}
+			case CURSOR_MODE.ADD_OBSTACLE: {
+				this.cursorImage.appendChild(this.addObstacleCursorImage);
+				break;
+			}
+			case CURSOR_MODE.ADD_ITEM: {
+				this.cursorImage.appendChild(this.addItemCursorImage);
+				break;
+			}
+			default:
+			case CURSOR_MODE.SELECT: {
+				this.cursorImage.appendChild(this.selectCursorImage);
+				break;
+			}
+		}
 
 		/*****************************
 		//   init status tag
@@ -281,7 +423,7 @@ var UI = function(env) {
 		//    init switch button 
 		**************************/
 		$(function() {
-		    container.switchImage = $('#switch');
+		    container.switchImage = $('img#switch');
 		    container.switchImage.off();
 
 		    if(car) {

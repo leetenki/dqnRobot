@@ -11,6 +11,9 @@ var World = function() {
 	container.walls = [];
 	container.obstacles = [];
 	container.cars = [];
+	container.items = [];
+	container.basicObstacle = null;
+	container.basicItem = null;
 
 	// function to detect collision
 	container.collisionDetection = function(object) {
@@ -61,7 +64,7 @@ var World = function() {
 			do {
 				object.position.x = Math.random()*this.worldSize - halfSize;
 				object.position.z = Math.random()*this.worldSize - halfSize;
-				object.rotateY(Math.random() * Math.PI * 2);
+				object.rotation.y = Math.random() * Math.PI * 2;
 			} while(container.collisionDetection(object));
 		} else {
 			var radius = 0;
@@ -101,6 +104,7 @@ var World = function() {
 	container.initWorld = function(param) {
 		// initialize everything
 		container.clearWorld();
+		console.log(this.children);
 		container.param = param;
 		container.worldSize = param.WORLD_SIZE;
 
@@ -120,7 +124,7 @@ var World = function() {
 				var halfSize = param.WORLD_SIZE / 2;
 
 				// floor
-				var geometry = new THREE.PlaneGeometry(param.WORLD_SIZE, param.WORLD_SIZE, 32, 32);
+				var geometry = new THREE.PlaneGeometry(param.WORLD_SIZE, param.WORLD_SIZE);
 				var texture = THREE.ImageUtils.loadTexture(param.COURSE.FLOOR_TEXTURE);
 				texture.magFilter = THREE.NearestFilter;
 			    texture.minFilter = THREE.NearestFilter;
@@ -129,7 +133,6 @@ var World = function() {
 					map: texture,
 					transparent: false, 
 					opacity: 1,
-					shininess: 10
 				});
 				container.floor = new THREE.Mesh(geometry, material);
 				container.floor.rotateX(-Math.PI/2);
@@ -202,13 +205,32 @@ var World = function() {
 				var size = param.COURSE.OBSTACLE_SIZE;
 				var geometry = new THREE.BoxGeometry(size, size, size);
 				var texture = THREE.ImageUtils.loadTexture(param.COURSE.OBSTACLE_TEXTURE);
-				var material = new THREE.MeshBasicMaterial({map: texture});
+				texture.magFilter = THREE.NearestFilter;
+			    texture.minFilter = THREE.NearestFilter;
+				var material = new THREE.MeshPhongMaterial({map: texture});
+				this.basicObstacle = new THREE.Mesh(geometry, material);
 				for(var i = 0; i < param.COURSE.NUM_OBSTACLES; i++) {
-					var mesh = new THREE.Mesh(geometry, material);
+					var mesh = this.basicObstacle.clone();
 					mesh.position.y = size / 2;
 					container.putIntoWorld(mesh);
 					container.obstacles.push(mesh);
 					mesh.objectType = OBJECT_TYPE.OBSTACLE;
+				}
+
+				// items
+				var size = param.COURSE.ITEM_SIZE;
+				var geometry = new THREE.BoxGeometry(size, size, size);
+				var texture = THREE.ImageUtils.loadTexture(param.COURSE.ITEM_TEXTURE);
+				texture.magFilter = THREE.NearestFilter;
+			    texture.minFilter = THREE.NearestFilter;
+				var material = new THREE.MeshBasicMaterial({map: texture, transparent: true});
+				this.basicItem = new THREE.Mesh(geometry, material);
+				for(var i = 0; i < param.COURSE.NUM_ITEMS; i++) {
+					var mesh = this.basicItem.clone();
+					mesh.position.y = size / 2;
+					container.putIntoWorld(mesh);
+					container.items.push(mesh);
+					mesh.objectType = OBJECT_TYPE.ITEM;
 				}
 				break;
 			}
@@ -222,13 +244,70 @@ var World = function() {
 		}
 	}
 
-	// function to put an obstacle into the world
-	container.addObstacle = function(position, rotation, scale) {		
+	// function to create an obstacle
+	container.createObstacle = function(position, rotation, scale) {
 		var size = container.param.COURSE.OBSTACLE_SIZE;
-		var geometry = new THREE.BoxGeometry(size, size, size);
-		var texture = THREE.ImageUtils.loadTexture(container.param.COURSE.OBSTACLE_TEXTURE);
-		var material = new THREE.MeshBasicMaterial({map: texture});
+		var geometry = this.basicObstacle.geometry.clone();
+		var material = this.basicObstacle.material.clone();
 		var mesh = new THREE.Mesh(geometry, material);
+		mesh.position.y = size / 2;		
+		return mesh;
+	}
+
+	// function to create an obstacle
+	container.createItem = function(position, rotation, scale) {
+		var size = container.param.COURSE.ITEM_SIZE;
+		var geometry = this.basicItem.geometry.clone();
+		var material = this.basicItem.material.clone();
+		var mesh = new THREE.Mesh(geometry, material);
+		mesh.position.y = size / 2;		
+		return mesh;
+	}
+
+	// function to put an item into the world
+	container.addItem = function(position, rotation, scale) {
+		var mesh = null;
+
+		var size = container.param.COURSE.ITEM_SIZE;
+		if(container.basicItem) {
+			mesh = container.basicItem.clone();
+		} else {
+			var geometry = new THREE.BoxGeometry(size, size, size);
+			var texture = THREE.ImageUtils.loadTexture(container.param.COURSE.ITEM_TEXTURE);
+			var material = new THREE.MeshPhongMaterial({map: texture, transparent: true});
+			mesh = new THREE.Mesh(geometry, material);
+		}
+		mesh.objectType = OBJECT_TYPE.ITEM;
+		mesh.position.y = size / 2;
+
+		if(position) {
+			mesh.position.x = position.x;
+			mesh.position.z = position.z;
+		}
+		if(rotation) {
+			mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+		}
+		if(scale) {
+			mesh.scale.set(scale.x, scale.y, scale.z);
+		}
+
+		container.putIntoWorld(mesh, position);
+		container.items.push(mesh);
+	}
+
+	// function to put an obstacle into the world
+	container.addObstacle = function(position, rotation, scale) {
+		var mesh = null;
+
+		var size = container.param.COURSE.OBSTACLE_SIZE;
+		if(container.basicObstacle) {
+			mesh = container.basicObstacle.clone();
+		} else {
+			var geometry = new THREE.BoxGeometry(size, size, size);
+			var texture = THREE.ImageUtils.loadTexture(container.param.COURSE.OBSTACLE_TEXTURE);
+			var material = new THREE.MeshBasicMaterial({map: texture});
+			mesh = new THREE.Mesh(geometry, material);
+		}
 		mesh.objectType = OBJECT_TYPE.OBSTACLE;
 		mesh.position.y = size / 2;
 
@@ -289,6 +368,25 @@ var World = function() {
 		return false;
 	}
 
+	// function to remove item
+	container.removeItem = function(item) {
+		for(var i = 0; i < container.items.length; i++) {
+			if(container.items[i] == item) {
+				container.items.splice(i, 1);
+				container.remove(item);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// function to remove all of items
+	container.removeItems = function() {
+		while(container.items.length) {
+			container.remove(container.items.pop());
+		}
+	}
+
 	// function to remove all of obstacles
 	container.removeObstacles = function() {
 		while(container.obstacles.length) {
@@ -339,6 +437,7 @@ var World = function() {
 		container.removeSkydome();
 		container.removeFloor();
 		container.removeWalls();
+		container.removeItems();
 		container.removeObstacles();
 	}
 

@@ -14,6 +14,7 @@ var Env = function() {
 	this.selectCursor = null;
 	this.deleteCursor = null;
 	this.addCarCursor = null;
+	this.addItemCursor = null;
 	this.addObstacleCursor = null;
 	this.carCount = 0;
 
@@ -26,6 +27,10 @@ var Env = function() {
 		right: false,
 		shift: false,
 		ctrl: false,
+		A: false,
+		S: false,
+		W: false,
+		D: false,
 	}
 
 
@@ -47,99 +52,6 @@ var Env = function() {
 			this.scene.children.pop();
 		}
 
-		/**********************
-		// init cursor helpers
-		**********************/
-		// select cursor
-		var texture = THREE.ImageUtils.loadTexture("./assets/textures/select.png");
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-		var material = new THREE.MeshBasicMaterial({
-			transparent: true, 
-			opacity: 0.7, 
-			map: texture,
-			blending: THREE.AdditiveBlending,
-		});
-		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
-		this.selectCursor = new THREE.Mesh(planeGeometry, material);
-		this.selectCursor.rotateX(-Math.PI/2);
-		this.selectCursor.visible = false;
-		this.selectCursor.theta = 0;
-		this.selectCursor.update = function(delta) {
-			this.theta += delta * 4;
-			this.rotateZ(delta);
-			this.scale.set(1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1);
-		}
-		this.scene.add(this.selectCursor);
-
-		// delete cursor
-		var texture = THREE.ImageUtils.loadTexture("./assets/textures/delete.png");
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-		var material = new THREE.MeshBasicMaterial({
-			transparent: true, 
-			opacity: 0.9, 
-			map: texture,
-			blending: THREE.AdditiveBlending,
-		});
-		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
-		this.deleteCursor = new THREE.Mesh(planeGeometry, material);
-		this.deleteCursor.rotateX(-Math.PI/2);
-		this.deleteCursor.visible = false;
-		this.deleteCursor.theta = 0;
-		this.deleteCursor.update = function(delta) {
-			this.theta += delta * 4;
-			this.scale.set(1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1);
-		}
-	
-		this.scene.add(this.deleteCursor);
-
-		// AddCar cursor
-		var texture = THREE.ImageUtils.loadTexture("./assets/textures/addCar.png");
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-		var material = new THREE.MeshBasicMaterial({
-			transparent: true, 
-			opacity: 0.9, 
-			map: texture,
-			blending: THREE.AdditiveBlending,
-		});
-		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
-		this.addCarCursor = new THREE.Mesh(planeGeometry, material);
-		this.addCarCursor.rotateX(-Math.PI/2);
-		this.addCarCursor.visible = false;
-		this.addCarCursor.theta = 0;
-		this.addCarCursor.update = function(delta) {
-			this.rotateZ(delta);
-			//this.theta += delta * 4;
-			//this.scale.set(1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1);
-		}
-		this.scene.add(this.addCarCursor);
-
-		// AddObstacle cursor
-		var texture = THREE.ImageUtils.loadTexture("./assets/textures/stop.png");
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-		var material = new THREE.MeshBasicMaterial({
-			transparent: true, 
-			opacity: 0.5, 
-			map: texture,
-		});
-		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
-		this.addObstacleCursor = new THREE.Mesh(planeGeometry, material);
-		this.addObstacleCursor.rotateX(-Math.PI/2);
-		this.addObstacleCursor.visible = false;
-		this.addObstacleCursor.theta = 0;
-		this.addObstacleCursor.update = function(delta) {
-			//this.rotateZ(-delta);
-			this.theta += delta * 4;
-			this.scale.set(1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1);
-		}		
-		this.scene.add(this.addObstacleCursor);		
-
-		// set current mode to select mode
-		this.switchCursorMode(CURSOR_MODE.SELECT);
-
 		// init world
 		this.world.initWorld(WORLD_INFO);
 		this.scene.add(this.world);
@@ -151,6 +63,188 @@ var Env = function() {
 		// init ui
 		this.ui.initHTML(this.cars[0]);
 		this.ui.drawHTML(this.cars[0]);
+
+
+		/**********************
+		// init cursor helpers
+		**********************/
+		// select cursor
+		var texture = THREE.ImageUtils.loadTexture(CURSOR_MODE.SELECT.TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshBasicMaterial({
+			transparent: true, 
+			opacity: 0.9, 
+			map: texture,
+			blending: THREE.AdditiveBlending,
+		});
+		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
+		this.selectCursor = new THREE.Mesh(planeGeometry, material);
+		this.selectCursor.rotateX(-Math.PI/2);
+		this.selectCursor.position.y = 3;
+		this.selectCursor.visible = false;
+		this.selectCursor.theta = 0;
+		this.selectCursor.update = function(delta) {
+			this.theta += delta * 4;
+			this.rotateZ(delta);
+			this.scale.set(1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1);
+		}
+		this.scene.add(this.selectCursor);
+
+
+
+		// delete cursor
+		var texture = THREE.ImageUtils.loadTexture(CURSOR_MODE.DELETE.TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshBasicMaterial({
+			transparent: true, 
+			opacity: 0.9, 
+			map: texture,
+			blending: THREE.AdditiveBlending,
+		});
+		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
+		this.deleteCursor = new THREE.Mesh(planeGeometry, material);
+		this.deleteCursor.rotateX(-Math.PI/2);
+		this.deleteCursor.position.y = 3;
+		this.deleteCursor.visible = false;
+		this.deleteCursor.theta = 0;
+		this.deleteCursor.update = function(delta) {
+			this.theta += delta * 4;
+			this.scale.set(1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1,1+Math.sin(this.theta)*0.1);
+		}
+		this.scene.add(this.deleteCursor);
+
+
+
+		// AddCar cursor
+		this.addCarCursor = new THREE.Mesh();
+		this.addCarCursor.visible = false;
+		this.addCarCursor.position.y = 3;
+		this.scene.add(this.addCarCursor);
+		// cursor image
+		var texture = THREE.ImageUtils.loadTexture(CURSOR_MODE.ADD_CAR.TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshBasicMaterial({
+			transparent: true, 
+			opacity: 0.9, 
+			map: texture,
+			blending: THREE.AdditiveBlending,
+		});
+		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
+		var cursorImage = new THREE.Mesh(planeGeometry, material);
+		cursorImage.rotateX(-Math.PI/2);
+		this.addCarCursor.cursorImage = cursorImage;
+		this.addCarCursor.add(cursorImage);
+		// cursor helper
+		var cursorHelper = new CarMesh({
+			src: CAR_INFO.CAR_TEXTURE,
+			size: CAR_INFO.SIZE,
+		}, this);
+		cursorHelper.rotation.y = Math.PI;
+		cursorHelper.material.opacity = 0.6;
+		cursorHelper.material.transparent = true;
+		this.addCarCursor.cursorHelper = cursorHelper;
+		this.addCarCursor.add(cursorHelper);
+		this.addCarCursor.theta = 0;
+		this.addCarCursor.cursorHelper.theta = 0;
+		this.addCarCursor.update = function(delta) {
+			this.cursorImage.rotateZ(delta);
+			if(container.keyMap.A) {
+				this.cursorHelper.theta += delta * 3;
+				this.cursorHelper.rotateY(delta);
+			} else if(container.keyMap.D) {
+				this.cursorHelper.theta -= delta * 3;
+				this.cursorHelper.rotateY(-delta);
+			}			
+		}
+
+
+
+		// AddObstacle cursor 
+		// has children 'cursorImage' and 'cursorHelper'
+		this.addObstacleCursor = new THREE.Mesh();
+		this.addObstacleCursor.visible = false;
+		this.addObstacleCursor.position.y = 3;
+		this.scene.add(this.addObstacleCursor);
+		// cursor image
+		var texture = THREE.ImageUtils.loadTexture(CURSOR_MODE.ADD_OBSTACLE.TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshBasicMaterial({
+			transparent: true, 
+			opacity: 0.8, 
+			map: texture,
+			blending: THREE.AdditiveBlending
+		});
+		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
+		var cursorImage = new THREE.Mesh(planeGeometry, material);
+		cursorImage.rotateX(-Math.PI/2);
+		this.addObstacleCursor.cursorImage = cursorImage;
+		this.addObstacleCursor.add(cursorImage);
+		// cursor helper
+		var cursorHelper = this.world.createObstacle();
+		cursorHelper.material.opacity = 0.6;
+		cursorHelper.material.transparent = true;
+		cursorHelper.material.color.set(0xffffff);
+		this.addObstacleCursor.cursorHelper = cursorHelper;
+		this.addObstacleCursor.add(cursorHelper);
+		this.addObstacleCursor.theta = 0;
+		this.addObstacleCursor.update = function(delta) {
+			if(container.keyMap.A) {
+				this.theta += delta * 3;
+				this.rotateY(delta);
+			} else if(container.keyMap.D) {
+				this.theta -= delta * 3;
+				this.rotateY(-delta);
+			}
+			//this.cursorHelper.material.opacity = 0.6 +  Math.sin(this.theta) * 0.05;
+		}		
+	
+
+		// AddItem cursor 
+		// has children 'cursorImage' and 'cursorHelper'
+		this.addItemCursor = new THREE.Mesh();
+		this.addItemCursor.visible = false;
+		this.addItemCursor.position.y = 3;
+		this.scene.add(this.addItemCursor);
+		// cursor image
+		var texture = THREE.ImageUtils.loadTexture(CURSOR_MODE.ADD_ITEM.TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshBasicMaterial({
+			transparent: true, 
+			opacity: 0.8, 
+			map: texture,
+			blending: THREE.AdditiveBlending
+		});
+		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
+		var cursorImage = new THREE.Mesh(planeGeometry, material);
+		cursorImage.rotateX(-Math.PI/2);
+		this.addItemCursor.cursorImage = cursorImage;
+		this.addItemCursor.add(cursorImage);
+		// cursor helper
+		var cursorHelper = this.world.createItem();
+		cursorHelper.material.opacity = 0.6;
+		cursorHelper.material.transparent = true;
+		cursorHelper.material.color.set(0xffffff);
+		this.addItemCursor.cursorHelper = cursorHelper;
+		this.addItemCursor.add(cursorHelper);
+		this.addItemCursor.theta = 0;
+		this.addItemCursor.update = function(delta) {
+			if(container.keyMap.A) {
+				this.theta += delta * 3;
+				this.rotateY(delta);
+			} else if(container.keyMap.D) {
+				this.theta -= delta * 3;
+				this.rotateY(-delta);
+			}
+			//this.cursorHelper.material.opacity = 0.6 +  Math.sin(this.theta) * 0.05;
+		}		
+
+		// set current mode to select mode
+		this.switchCursorMode(CURSOR_MODE.SELECT);
 	}
 
 	// return selected car
@@ -194,6 +288,10 @@ var Env = function() {
 					break;
 				}
 				case CURSOR_MODE.ADD_OBSTACLE: {
+					this.cursorMode = CURSOR_MODE.ADD_ITEM;
+					break;
+				}
+				case CURSOR_MODE.ADD_ITEM: {
 					this.cursorMode = CURSOR_MODE.SELECT;
 					break;
 				}
@@ -204,6 +302,7 @@ var Env = function() {
 		this.selectCursor.visible = false;
 		this.deleteCursor.visible = false;
 		this.addCarCursor.visible = false;
+		this.addItemCursor.visible = false;
 		this.addObstacleCursor.visible = false;
 
 		// process cursor mode
@@ -228,12 +327,23 @@ var Env = function() {
 				this.addObstacleCursor.visible = true;
 				break;
 			}
+			case CURSOR_MODE.ADD_ITEM: {
+				this.currentCursor = this.addItemCursor;
+				this.addItemCursor.visible = true;
+			}
 		}
+
+		// update all information
 		this.mouseMove({clientX: this.keyMap.mouseX, clientY: this.keyMap.mouseY});
+		if(this.selected != -1) {
+			this.ui.drawHTML(this.cars[this.selected]);
+		} else {
+			this.ui.drawHTML();
+		}
 	}
 
 	// function to add a car into the world
-	this.addCar = function(position) {
+	this.addCar = function(position, rotation) {
 		this.carCount += 1;
 		var car = new Car({
 			ID: "CAR" + this.carCount,
@@ -242,7 +352,11 @@ var Env = function() {
 			eyeParam: EYE_PARAM,
 			mode: MODE.LEARNING,
 		}, this);
-		car.mesh.rotation.y = Math.PI;
+		if(rotation) {
+			car.mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+		} else {
+			car.mesh.rotation.y = Math.PI;
+		}
 
 		// add car
 		if(position) {
@@ -377,6 +491,20 @@ var Env = function() {
 	/***************************/
 	// keyup function
 	document.onkeyup = function(e) { 
+		switch(e.keyCode) {
+			case 65: // A
+				container.keyMap.A = false;
+				break;
+			case 83: // S
+				container.keyMap.S = false;
+				break;
+			case 68: // D
+				container.keyMap.D = false;
+				break;
+			case 87: // W
+				container.keyMap.W = false;
+				break;						
+		}
 		switch(e.keyIdentifier) {
 			case "Down":
 				container.keyMap.down = false;
@@ -401,18 +529,33 @@ var Env = function() {
 
 	// keyup function
 	document.onkeydown = function(e) { 
-		switch(e.which) {
+		switch(e.keyCode) {
+			case 65: // A
+				container.keyMap.A = true;
+				break;
+			case 83: // S
+				container.keyMap.S = true;
+				break;
+			case 68: // D
+				container.keyMap.D = true;
+				break;
+			case 87: // W
+				container.keyMap.W = true;
+				break;
 			case 49: //1
-				container.switchCursorMode(CURSOR_MODE.SELECT)
+				container.switchCursorMode(CURSOR_MODE.SELECT);
 				break;
 			case 50: //2
-				container.switchCursorMode(CURSOR_MODE.DELETE)
+				container.switchCursorMode(CURSOR_MODE.DELETE);
 				break;
 			case 51: //3
-				container.switchCursorMode(CURSOR_MODE.ADD_CAR)
+				container.switchCursorMode(CURSOR_MODE.ADD_CAR);
 				break;
 			case 52: //4
-				container.switchCursorMode(CURSOR_MODE.ADD_OBSTACLE)
+				container.switchCursorMode(CURSOR_MODE.ADD_OBSTACLE);
+				break;
+			case 53: //5
+				container.switchCursorMode(CURSOR_MODE.ADD_ITEM);
 				break;
 		}
 
@@ -459,7 +602,7 @@ var Env = function() {
 				container.currentCursor.visible = true;
 				container.currentCursor.position.set(
 					collisionResults[i].point.x,
-					collisionResults[i].point.y + 3,
+					container.currentCursor.position.y,
 					collisionResults[i].point.z
 				);
 				break;
@@ -483,6 +626,7 @@ var Env = function() {
 			case CURSOR_MODE.DELETE: {
 				switch(object.objectType) {
 					case OBJECT_TYPE.CAR: 
+					case OBJECT_TYPE.ITEM:
 					case OBJECT_TYPE.OBSTACLE: {
 						document.body.style.cursor = "not-allowed";
 						break;
@@ -496,6 +640,10 @@ var Env = function() {
 			}
 			// add obstacle mode
 			case CURSOR_MODE.ADD_OBSTACLE: {
+				break;
+			}
+			// add item mode
+			case CURSOR_MODE.ADD_ITEM: {
 				break;
 			}
 		}
@@ -540,6 +688,10 @@ var Env = function() {
 						container.world.removeObstacle(object);
 						break;
 					}
+					case OBJECT_TYPE.ITEM: {
+						container.world.removeItem(object);
+						break;
+					}
 				}
 				break;
 			}
@@ -549,7 +701,7 @@ var Env = function() {
 				for(var i = 0; i < collisionResults.length; i++) {
 					if(collisionResults[i].object.objectType == OBJECT_TYPE.FLOOR) {
 						clickedPosition = collisionResults[i].point.clone();
-						container.addCar(clickedPosition);
+						container.addCar(clickedPosition, container.addCarCursor.cursorHelper.rotation);
 						break;
 					}
 				}
@@ -561,7 +713,19 @@ var Env = function() {
 				for(var i = 0; i < collisionResults.length; i++) {
 					if(collisionResults[i].object.objectType == OBJECT_TYPE.FLOOR) {
 						clickedPosition = collisionResults[i].point.clone();
-						container.world.addObstacle(clickedPosition);
+						container.world.addObstacle(clickedPosition, container.addObstacleCursor.rotation);
+						break;
+					}
+				}
+				break;
+			}
+			// add item
+			case CURSOR_MODE.ADD_ITEM: {
+				var clickedPosition = null;
+				for(var i = 0; i < collisionResults.length; i++) {
+					if(collisionResults[i].object.objectType == OBJECT_TYPE.FLOOR) {
+						clickedPosition = collisionResults[i].point.clone();
+						container.world.addItem(clickedPosition, container.addItemCursor.rotation);
 						break;
 					}
 				}
