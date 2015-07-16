@@ -55,6 +55,7 @@ var Car = function(param, env) {
 	this.SPEED = param.SPEED;
 	this.ROTATE_AMOUNT = param.ROTATE_AMOUNT;
 	this.param = param;
+	var container = this;
 
 	// define yAxis
 	var yAxis = new THREE.Vector3(0, 1, 0);
@@ -63,8 +64,11 @@ var Car = function(param, env) {
 	var geometry = new THREE.BoxGeometry(param.size, param.size, param.size);
 	var carTexture = null;
 	carTexture = THREE.ImageUtils.loadTexture(param.src, undefined, function() {
-		if(carTexture)
+		if(carTexture) {
 			carTexture.needsUpdate = true;
+			container.mesh.material.needsUpdate = true;
+			console.log("ok");
+		}
 	});
 	carTexture.magFilter = THREE.NearestFilter;
     carTexture.minFilter = THREE.NearestFilter;
