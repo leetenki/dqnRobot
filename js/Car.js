@@ -61,11 +61,13 @@ var Car = function(param, env) {
 
 	// create car mesh
 	var geometry = new THREE.BoxGeometry(param.size, param.size, param.size);
-	var texture = THREE.ImageUtils.loadTexture(param.src);
-	texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-	var material = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide, transparent: true});
-	material.needsUpdate = true;
+	var carTexture = THREE.ImageUtils.loadTexture(param.src, undefined, function() {
+		console.log(this);
+		carTexture.needsUpdate = true;
+	});
+	carTexture.magFilter = THREE.NearestFilter;
+    carTexture.minFilter = THREE.NearestFilter;
+	var material = new THREE.MeshBasicMaterial({map: carTexture, side: THREE.DoubleSide, transparent: true});
 	this.mesh = new THREE.Mesh(geometry, material);
 	this.mesh.position.y = this.offsetY;
 	this.mesh.objectType = OBJECT_TYPE.CAR;
