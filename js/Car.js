@@ -48,7 +48,7 @@ var Car = function(param, env) {
 	this.command = COMMAND.FORWARD;
 	this.rewards = 0;
 	this.moveSucceeded = true;
-	this.brain = new deepqlearn.Brain(param.eyeParam.NUM_EYES, COMMAND.LENGTH);
+	this.brain = initBrain();
 	this.size = param.size;       // the longest edge
 	this.cameraOffset = this.size / 2;
 	this.offsetY = this.size / 2;
@@ -82,6 +82,39 @@ var Car = function(param, env) {
 	this.mesh = new THREE.Mesh(geometry, material);
 	this.mesh.position.y = this.offsetY;
 	this.mesh.objectType = OBJECT_TYPE.CAR;
+
+	/**********************
+	//  function to init brain
+	**********************/
+	function initBrain() {
+		var num_inputs = param.eyeParam.NUM_EYES; //  input data size, equals to eyes size.
+		var num_actions = COMMAND.LENGTH;         // output size, depends on commands size.
+		var network_size = num_inputs + num_actions + num_inputs;
+
+		var layer_defs = [];
+		layer_defs.push({type:'input', out_sx:1, out_sy:1, out_depth:network_size});
+		layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
+		layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
+		layer_defs.push({type:'regression', num_neurons:num_actions});
+
+		// by backpropping the temporal difference learning rule.
+		var tdtrainer_options = {learning_rate:0.001, momentum:0.0, batch_size:64, l2_decay:0.01};
+
+		var opt = {};
+		opt.temporal_window = 1;
+		opt.experience_size = 30000;
+		opt.start_learn_threshold = 1000;
+		opt.gamma = 0.7;
+		opt.learning_steps_total = 200000;
+		opt.learning_steps_burnin = 3000;
+		opt.epsilon_min = 0.05;
+		opt.epsilon_test_time = 0.05;
+		opt.layer_defs = layer_defs;
+		opt.tdtrainer_options = tdtrainer_options;
+
+		return new deepqlearn.Brain(num_inputs, num_actions, opt); 	
+	}
+	this.initBrain = initBrain;
 
 	// create eyes
 	/*********************
