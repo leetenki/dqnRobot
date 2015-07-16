@@ -61,9 +61,10 @@ var Car = function(param, env) {
 
 	// create car mesh
 	var geometry = new THREE.BoxGeometry(param.size, param.size, param.size);
-	var carTexture = THREE.ImageUtils.loadTexture(param.src, undefined, function() {
-		console.log(this);
-		carTexture.needsUpdate = true;
+	var carTexture = null;
+	carTexture = THREE.ImageUtils.loadTexture(param.src, undefined, function() {
+		if(carTexture)
+			carTexture.needsUpdate = true;
 	});
 	carTexture.magFilter = THREE.NearestFilter;
     carTexture.minFilter = THREE.NearestFilter;

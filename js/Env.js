@@ -685,7 +685,7 @@ var Env = function() {
 
 	// keyup function
 	document.onkeydown = function(e) { 
-		console.log(e.keyCode);
+		//console.log(e.keyCode);
 		switch(e.keyCode) {
 			case 65: // A
 				container.keyMap.A = true;
