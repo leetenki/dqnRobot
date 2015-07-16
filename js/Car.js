@@ -12,7 +12,13 @@ var CarMesh = function(param, env) {
 	var offsetY = size / 2;
 
 	var geometry = new THREE.BoxGeometry(size, size, size);
-	var texture = THREE.ImageUtils.loadTexture(param.src);
+	var texture = THREE.ImageUtils.loadTexture(param.src, undefined, function() {
+		if(texture) {
+			texture.needsUpdate = true;
+			material.needsUpdate = true;
+		}
+		console.log("car cursor loaded");
+	});
 	texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
 	var material = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide});
@@ -67,8 +73,8 @@ var Car = function(param, env) {
 		if(carTexture) {
 			carTexture.needsUpdate = true;
 			container.mesh.material.needsUpdate = true;
-			console.log("ok");
 		}
+		console.log("car loaded");
 	});
 	carTexture.magFilter = THREE.NearestFilter;
     carTexture.minFilter = THREE.NearestFilter;

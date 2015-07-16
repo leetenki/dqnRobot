@@ -26,11 +26,11 @@ var World = function() {
 
 		// from car vector to each objects vector
 		var boundingBox = [
-			object.geometry.vertices[0].clone().applyMatrix4(object.matrixWorld),
-			object.geometry.vertices[1].clone().applyMatrix4(object.matrixWorld),
-			object.geometry.vertices[4].clone().applyMatrix4(object.matrixWorld),
-			object.geometry.vertices[5].clone().applyMatrix4(object.matrixWorld),
-			object.geometry.vertices[0].clone().applyMatrix4(object.matrixWorld),
+		object.geometry.vertices[0].clone().applyMatrix4(object.matrixWorld),
+		object.geometry.vertices[1].clone().applyMatrix4(object.matrixWorld),
+		object.geometry.vertices[4].clone().applyMatrix4(object.matrixWorld),
+		object.geometry.vertices[5].clone().applyMatrix4(object.matrixWorld),
+		object.geometry.vertices[0].clone().applyMatrix4(object.matrixWorld),
 		]
 		// set y to the middle to avoid bug
 		for(var i = 0; i < boundingBox.length; i++) {
@@ -116,16 +116,22 @@ var World = function() {
 
 		// floor
 		var geometry = new THREE.PlaneGeometry(param.WORLD_SIZE, param.WORLD_SIZE);
-		var texture = THREE.ImageUtils.loadTexture(param.COURSE.FLOOR_TEXTURE);
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-		var material = new THREE.MeshBasicMaterial({
+		var floorTexture = THREE.ImageUtils.loadTexture(param.COURSE.FLOOR_TEXTURE, undefined, function() {
+			if(floorTexture) {
+				floorTexture.needsUpdate = true;
+				floorMaterial.needsUpdate = true;
+			}
+			console.log("floor loaded");
+		});
+		floorTexture.magFilter = THREE.NearestFilter;
+		floorTexture.minFilter = THREE.NearestFilter;
+		var floorMaterial = new THREE.MeshBasicMaterial({
 			side: THREE.DoubleSide, 
-			map: texture,
+			map: floorTexture,
 			transparent: false, 
 			opacity: 1,
 		});
-		container.floor = new THREE.Mesh(geometry, material);
+		container.floor = new THREE.Mesh(geometry, floorMaterial);
 		container.floor.rotateX(-Math.PI/2);
 		container.floor.position.y -= 3;
 		container.floor.objectType = OBJECT_TYPE.FLOOR;
@@ -134,16 +140,22 @@ var World = function() {
 		container.add(container.floor);
 
 		// generate skydome
-		var texture = THREE.ImageUtils.loadTexture(param.COURSE.SKY_TEXTURE)
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-		var material = new THREE.MeshPhongMaterial({
+		var skyTexture = THREE.ImageUtils.loadTexture(param.COURSE.SKY_TEXTURE, undefined, function() {
+			if(skyTexture) {
+				skyTexture.needsUpdate = true;
+				skyMaterial.needsUpdate = true;
+			}
+			console.log("skydome loaded");			
+		})
+		skyTexture.magFilter = THREE.NearestFilter;
+		skyTexture.minFilter = THREE.NearestFilter;
+		var skyMaterial = new THREE.MeshPhongMaterial({
 			shininess: 10,
 			side: THREE.DoubleSide,
-			map: texture
+			map: skyTexture
 		});
 		var sphere = new THREE.BoxGeometry(4200, 3300, 4200);
-		container.skydome = new THREE.Mesh(sphere, material);
+		container.skydome = new THREE.Mesh(sphere, skyMaterial);
 		container.skydome.updateMatrix();
 		container.skydome.updateMatrixWorld();
 		container.add(container.skydome);
@@ -151,12 +163,18 @@ var World = function() {
 		// walls
 		var size = param.COURSE.WALL_SIZE;
 		var geometry = new THREE.BoxGeometry(size, size, size);
-		var texture = THREE.ImageUtils.loadTexture(param.COURSE.WALL_TEXTURE);
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-	    var material = new THREE.MeshBasicMaterial({map: texture, transparent: true, opacity: 0.8});
+		var wallTexture = THREE.ImageUtils.loadTexture(param.COURSE.WALL_TEXTURE, undefined, function() {
+			if(wallTexture) {
+				wallTexture.needsUpdate = true;
+				wallMaterial.needsUpdate = true;
+			}
+			console.log("wall loaded");						
+		});
+		wallTexture.magFilter = THREE.NearestFilter;
+		wallTexture.minFilter = THREE.NearestFilter;
+		var wallMaterial = new THREE.MeshBasicMaterial({map: wallTexture, transparent: true, opacity: 0.8});
 		for(var i = 0; i < worldData.walls.length; i++) {
-			var mesh = new THREE.Mesh(geometry, material);
+			var mesh = new THREE.Mesh(geometry, wallMaterial);
 			mesh.position.set(worldData.walls[i].position.x, worldData.walls[i].position.y, worldData.walls[i].position.z);
 			mesh.rotation.x = worldData.walls[i].rotation.x;
 			mesh.rotation.y = worldData.walls[i].rotation.y;
@@ -171,11 +189,17 @@ var World = function() {
 		// obstacles
 		var size = param.COURSE.OBSTACLE_SIZE;
 		var geometry = new THREE.BoxGeometry(size, size, size);
-		var texture = THREE.ImageUtils.loadTexture(param.COURSE.OBSTACLE_TEXTURE);
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-		var material = new THREE.MeshPhongMaterial({map: texture});
-		this.basicObstacle = new THREE.Mesh(geometry, material);
+		var obstacleTexture = THREE.ImageUtils.loadTexture(param.COURSE.OBSTACLE_TEXTURE, undefined, function() {
+			if(obstacleTexture) {
+				obstacleTexture.needsUpdate = true;
+				obstacleMaterial.needsUpdate = true;
+			}
+			console.log("obstacle loaded");			
+		});
+		obstacleTexture.magFilter = THREE.NearestFilter;
+		obstacleTexture.minFilter = THREE.NearestFilter;
+		var obstacleMaterial = new THREE.MeshPhongMaterial({map: obstacleTexture});
+		this.basicObstacle = new THREE.Mesh(geometry, obstacleMaterial);
 		for(var i = 0; i < worldData.obstacles.length; i++) {
 			var mesh = this.basicObstacle.clone();
 			container.putIntoWorld(mesh);
@@ -192,11 +216,17 @@ var World = function() {
 		// items
 		var size = param.COURSE.ITEM_SIZE;
 		var geometry = new THREE.BoxGeometry(size, size, size);
-		var texture = THREE.ImageUtils.loadTexture(param.COURSE.ITEM_TEXTURE);
-		texture.magFilter = THREE.NearestFilter;
-	    texture.minFilter = THREE.NearestFilter;
-		var material = new THREE.MeshBasicMaterial({map: texture, transparent: true});
-		this.basicItem = new THREE.Mesh(geometry, material);
+		var itemTexture = THREE.ImageUtils.loadTexture(param.COURSE.ITEM_TEXTURE, undefined, function() {
+			if(itemTexture) {
+				itemTexture.needsUpdate = true;
+				itemMaterial.needsUpdate = true;
+			}
+			console.log("item loaded");						
+		});
+		itemTexture.magFilter = THREE.NearestFilter;
+		itemTexture.minFilter = THREE.NearestFilter;
+		var itemMaterial = new THREE.MeshBasicMaterial({map: itemTexture, transparent: true});
+		this.basicItem = new THREE.Mesh(geometry, itemMaterial);
 		for(var i = 0; i < worldData.items.length; i++) {
 			var mesh = this.basicItem.clone();
 			mesh.position.set(worldData.items[i].position.x, worldData.items[i].position.y, worldData.items[i].position.z);
@@ -235,7 +265,7 @@ var World = function() {
 				var geometry = new THREE.PlaneGeometry(param.WORLD_SIZE, param.WORLD_SIZE);
 				var texture = THREE.ImageUtils.loadTexture(param.COURSE.FLOOR_TEXTURE);
 				texture.magFilter = THREE.NearestFilter;
-			    texture.minFilter = THREE.NearestFilter;
+				texture.minFilter = THREE.NearestFilter;
 				var material = new THREE.MeshBasicMaterial({
 					side: THREE.DoubleSide, 
 					map: texture,
@@ -253,7 +283,7 @@ var World = function() {
 				// generate skydome
 				var texture = THREE.ImageUtils.loadTexture(param.COURSE.SKY_TEXTURE)
 				texture.magFilter = THREE.NearestFilter;
-			    texture.minFilter = THREE.NearestFilter;
+				texture.minFilter = THREE.NearestFilter;
 				var material = new THREE.MeshPhongMaterial({
 					shininess: 10,
 					side: THREE.DoubleSide,
@@ -270,7 +300,7 @@ var World = function() {
 				var geometry = new THREE.BoxGeometry(size, size, size);
 				var texture = THREE.ImageUtils.loadTexture(param.COURSE.WALL_TEXTURE);
 				texture.magFilter = THREE.NearestFilter;
-	    		texture.minFilter = THREE.NearestFilter;
+				texture.minFilter = THREE.NearestFilter;
 				var material = new THREE.MeshBasicMaterial({map: texture, transparent: true, opacity: 0.8});
 				for(var x = -halfSize; x <= halfSize; x += size) {
 					var mesh = new THREE.Mesh(geometry, material);
@@ -316,7 +346,7 @@ var World = function() {
 				var geometry = new THREE.BoxGeometry(size, size, size);
 				var texture = THREE.ImageUtils.loadTexture(param.COURSE.OBSTACLE_TEXTURE);
 				texture.magFilter = THREE.NearestFilter;
-			    texture.minFilter = THREE.NearestFilter;
+				texture.minFilter = THREE.NearestFilter;
 				var material = new THREE.MeshPhongMaterial({map: texture});
 				this.basicObstacle = new THREE.Mesh(geometry, material);
 				for(var i = 0; i < param.COURSE.NUM_OBSTACLES; i++) {
@@ -332,7 +362,7 @@ var World = function() {
 				var geometry = new THREE.BoxGeometry(size, size, size);
 				var texture = THREE.ImageUtils.loadTexture(param.COURSE.ITEM_TEXTURE);
 				texture.magFilter = THREE.NearestFilter;
-			    texture.minFilter = THREE.NearestFilter;
+				texture.minFilter = THREE.NearestFilter;
 				var material = new THREE.MeshBasicMaterial({map: texture, transparent: true});
 				this.basicItem = new THREE.Mesh(geometry, material);
 				for(var i = 0; i < param.COURSE.NUM_ITEMS; i++) {
