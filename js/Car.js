@@ -23,6 +23,16 @@ var CarMesh = function(param, env) {
 	return mesh;
 }
 
+/**************************
+// requires:
+// param.ID
+// param.size
+// param.eyeParam.NUM_EYES
+// param.yeParam.COVER
+// param.eyeParam.DISTANCE
+// param.mode
+// param.src
+**************************/
 var Car = function(param, env) {
 	// object variables
 	this.mesh = null;
@@ -42,6 +52,9 @@ var Car = function(param, env) {
 	this.victim = null;  // used when collision happened
 	this.env = env;
 	this.world = env.world;
+	this.SPEED = param.SPEED;
+	this.ROTATE_AMOUNT = param.ROTATE_AMOUNT;
+	this.param = param;
 
 	// define yAxis
 	var yAxis = new THREE.Vector3(0, 1, 0);
@@ -52,6 +65,7 @@ var Car = function(param, env) {
 	texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
 	var material = new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide, transparent: true});
+	material.needsUpdate = true;
 	this.mesh = new THREE.Mesh(geometry, material);
 	this.mesh.position.y = this.offsetY;
 	this.mesh.objectType = OBJECT_TYPE.CAR;
@@ -138,28 +152,29 @@ var Car = function(param, env) {
 		var moveSucceeded = true;
 
 		if(command == COMMAND.TURN_RIGHT) {
-			this.mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
+			this.mesh.rotation.y -= this.ROTATE_AMOUNT * delta;
 			if(this.victim = this.world.collisionDetection(this.mesh)) {
 				moveSucceeded = false;
-				this.mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
+				this.mesh.rotation.y += this.ROTATE_AMOUNT * delta;
 			}
 		} else if(command == COMMAND.TURN_LEFT) {
-			this.mesh.rotation.y += CAR_INFO.ROTATE_AMOUNT * delta;
+			this.mesh.rotation.y += this.ROTATE_AMOUNT * delta;
 			if(this.victime = this.world.collisionDetection(this.mesh)) {
 				moveSucceeded = false;
-				this.mesh.rotation.y -= CAR_INFO.ROTATE_AMOUNT * delta;
+				this.mesh.rotation.y -= this.ROTATE_AMOUNT * delta;
 			}
 		} else if(command == COMMAND.FORWARD) {
-			this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
+			this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(this.SPEED * delta));
 			if(this.victim = this.world.collisionDetection(this.mesh)) {
+				console.log(this.victim.objectType.text);
 				moveSucceeded = false;
-				this.mesh.position.sub(this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
+				this.mesh.position.sub(this.directionVector.clone().multiplyScalar(this.SPEED * delta));
 			}		
 		} else if(command == COMMAND.BACK) {
-			this.mesh.position.sub(this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
+			this.mesh.position.sub(this.directionVector.clone().multiplyScalar(this.SPEED * delta));
 			if(this.victim = this.world.collisionDetection(this.mesh)) {
 				moveSucceeded = false;
-				this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(CAR_INFO.SPEED * delta));
+				this.mesh.position.addVectors(this.mesh.position.clone(), this.directionVector.clone().multiplyScalar(this.SPEED * delta));
 			}
 		}
 		this.updateEyes();

@@ -14,6 +14,7 @@ var Env = function() {
 	this.selectCursor = null;
 	this.deleteCursor = null;
 	this.addCarCursor = null;
+	this.loadCarCursor = null;
 	this.addItemCursor = null;
 	this.addObstacleCursor = null;
 	this.carCount = 0;
@@ -33,18 +34,22 @@ var Env = function() {
 		D: false,
 	}
 
+	// this param is used to share special parameter, when special mode invoked.
+ 	// car take value {mode: "loadCar", jsonText: jsonText};
+	this.exclusiveParam = null;
 
 	// alias this to avoid namespace collision with event function
 	var container = this;
 
 
 	// function to initialize environment
-	this.initEnv = function(scene, camera) {
+	this.initEnv = function(scene, camera, subCamera) {
 		// declaration
 		this.world = new World();
 		this.cars = new Array();
 		this.ui = new UI(this);
 		this.camera = camera;
+		this.subCamera = subCamera;
 
 		// init scene
 		this.scene = scene;
@@ -154,13 +159,56 @@ var Env = function() {
 			this.cursorImage.rotateZ(delta);
 			if(container.keyMap.A) {
 				this.cursorHelper.theta += delta * 3;
-				this.cursorHelper.rotateY(delta);
+				this.cursorHelper.rotation.y += delta;
 			} else if(container.keyMap.D) {
 				this.cursorHelper.theta -= delta * 3;
-				this.cursorHelper.rotateY(-delta);
+				this.cursorHelper.rotation.y -= delta;
 			}			
 		}
 
+
+		// loadCar cursor
+		this.loadCarCursor = new THREE.Mesh();
+		this.loadCarCursor.visible = false;
+		this.loadCarCursor.position.y = 3;
+		this.scene.add(this.loadCarCursor);
+		// cursor image
+		var texture = THREE.ImageUtils.loadTexture(CURSOR_MODE.LOAD_CAR.TEXTURE);
+		texture.magFilter = THREE.NearestFilter;
+	    texture.minFilter = THREE.NearestFilter;
+		var material = new THREE.MeshBasicMaterial({
+			transparent: true, 
+			opacity: 0.9, 
+			map: texture,
+			blending: THREE.AdditiveBlending,
+		});
+		var planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);			
+		var cursorImage = new THREE.Mesh(planeGeometry, material);
+		cursorImage.rotateX(-Math.PI/2);
+		this.loadCarCursor.cursorImage = cursorImage;
+		this.loadCarCursor.add(cursorImage);
+		// cursor helper
+		var cursorHelper = new CarMesh({
+			src: CAR_INFO.CAR_TEXTURE,
+			size: CAR_INFO.SIZE,
+		}, this);
+		cursorHelper.rotation.y = Math.PI;
+		cursorHelper.material.opacity = 0.6;
+		cursorHelper.material.transparent = true;
+		this.loadCarCursor.cursorHelper = cursorHelper;
+		this.loadCarCursor.add(cursorHelper);
+		this.loadCarCursor.theta = 0;
+		this.loadCarCursor.cursorHelper.theta = 0;
+		this.loadCarCursor.update = function(delta) {
+			this.cursorImage.rotateZ(delta);
+			if(container.keyMap.A) {
+				this.cursorHelper.theta += delta * 3;
+				this.cursorHelper.rotation.y += delta;
+			} else if(container.keyMap.D) {
+				this.cursorHelper.theta -= delta * 3;
+				this.cursorHelper.rotation.y -= delta;
+			}			
+		}
 
 
 		// AddObstacle cursor 
@@ -195,10 +243,10 @@ var Env = function() {
 		this.addObstacleCursor.update = function(delta) {
 			if(container.keyMap.A) {
 				this.theta += delta * 3;
-				this.rotateY(delta);
+				this.rotation.y += delta;
 			} else if(container.keyMap.D) {
 				this.theta -= delta * 3;
-				this.rotateY(-delta);
+				this.rotation.y -= delta;
 			}
 			//this.cursorHelper.material.opacity = 0.6 +  Math.sin(this.theta) * 0.05;
 		}		
@@ -270,6 +318,28 @@ var Env = function() {
 		}
 	}
 
+	// function to switch camera mode
+	this.switchCameraMode = function(cameraMode) {
+		if(cameraMode) {
+			this.subCamera.cameraMode = cameraMode;
+		} else {
+			switch(this.subCamera.cameraMode) {
+				case CAMERA_MODE.ROBOT_VIEW: {
+					this.subCamera.cameraMode = CAMERA_MODE.ROBOT_HEAD_VIEW;
+					break;
+				}
+				case CAMERA_MODE.ROBOT_HEAD_VIEW: {
+					this.subCamera.cameraMode = CAMERA_MODE.SKY_VIEW;
+					break;
+				}
+				case CAMERA_MODE.SKY_VIEW: {
+					this.subCamera.cameraMode = CAMERA_MODE.ROBOT_VIEW;
+					break;
+				}
+			}		
+		}
+	}
+
 	// function to switch cursor mode
 	this.switchCursorMode = function(cursorMode) {
 		if(cursorMode != null) {
@@ -303,6 +373,7 @@ var Env = function() {
 		this.selectCursor.visible = false;
 		this.deleteCursor.visible = false;
 		this.addCarCursor.visible = false;
+		this.loadCarCursor.visible = false;
 		this.addItemCursor.visible = false;
 		this.addObstacleCursor.visible = false;
 
@@ -321,6 +392,11 @@ var Env = function() {
 			case CURSOR_MODE.ADD_CAR: {
 				this.currentCursor = this.addCarCursor;
 				this.addCarCursor.visible = true;
+				break;
+			}
+			case CURSOR_MODE.LOAD_CAR: {
+				this.currentCursor = this.loadCarCursor;
+				this.loadCarCursor.visible = true;
 				break;
 			}
 			case CURSOR_MODE.ADD_OBSTACLE: {
@@ -343,10 +419,42 @@ var Env = function() {
 		}
 	}
 
+	// function to add a new car from json text
+	this.addCarFromJSON = function(position, rotation, jsonText) {
+		var carData = JSON.parse(jsonText);
+		this.carCount += 1;
+		carData.param.ID = "CAR" + this.carCount;
+		carData.param.mode = MODE.FREEDOM;
+		var car = new Car(carData.param, this);
+
+		// add brain
+		car.brain.learning = false;
+		car.brain.epsilon_test_time = 0.05;
+		car.brain.value_net.fromJSON(carData.brain);
+
+		// set position and rotation
+		if(rotation) {
+			car.mesh.rotation.y = rotation.y;
+		} else {
+			car.mesh.rotation.y = -Math.PI;
+		}
+		if(position) {
+			car.mesh.position.set(position.x, car.mesh.position.y, position.z);
+		}
+
+		// add car
+		this.world.putIntoWorld(car.mesh, car.mesh.position);
+		this.world.add(car.eyeGroup);
+		this.cars.push(car);
+		this.selectCar(this.cars.length-1);
+	}
+
 	// function to add a car into the world
 	this.addCar = function(position, rotation) {
 		this.carCount += 1;
 		var car = new Car({
+			SPEED: CAR_INFO.SPEED,
+			ROTATE_AMOUNT: CAR_INFO.ROTATE_AMOUNT,
 			ID: "CAR" + this.carCount,
 			src: CAR_INFO.CAR_TEXTURE,
 			size: CAR_INFO.SIZE,
@@ -354,7 +462,7 @@ var Env = function() {
 			mode: MODE.LEARNING,
 		}, this);
 		if(rotation) {
-			car.mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+			car.mesh.rotation.y = rotation.y;
 		} else {
 			car.mesh.rotation.y = -Math.PI;
 		}
@@ -490,20 +598,22 @@ var Env = function() {
 	// load world and brain from json text
 	container.loadFromJSON = function(jsonText) {
 	    var data = JSON.parse(jsonText);
-	    if(data.layers) { // is brain.json
-	    	if(container.cars.length && container.selected != -1) {
-	    		container.cars[container.selected].brain.learning = false;
-	    		container.cars[container.selected].brain.epsilon_test_time = 0.05;
-	    		container.cars[container.selected].brain.value_net.fromJSON(data);
-	    		container.cars[container.selected].mode = MODE.FREEDOM;
+	    if(data.brain) { // is brain.json
+	    	container.exclusiveParam = {
+	    		mode: "loadCar",
+	    		jsonText: jsonText,
 	    	}
+			container.switchCursorMode(CURSOR_MODE.LOAD_CAR);
 	    } else if(data.obstacles) { // is world.json
 			container.world.initWorldFromJSON(WORLD_INFO, jsonText);
 			var car = null;
-			if(container.cars.length && container.selected != -1) {
-				car = container.cars[container.selected];
+			for(var i = 0; i < container.cars.length; i++) {
+				car = container.cars[i];
 				container.world.putIntoWorld(car.mesh, car.mesh.position);
 				container.world.add(car.eyeGroup);
+			}
+			if(container.cars.length && container.selected != -1) {
+				car = container.cars[container.selected];
 			}
 
 			// init ui
@@ -532,7 +642,7 @@ var Env = function() {
 			    container.loadFromJSON(jsonText);
 			}
 	    }
-	    event.preventDefault(); 
+	    event.preventDefault();
 	}
 
 	// keyup function
@@ -590,13 +700,19 @@ var Env = function() {
 				container.keyMap.W = true;
 				break;
 			case 74: // J
-				container.saveWorldJSON();
+				//container.saveWorldJSON();
 				break;
 			case 66: // B
-				container.saveBrainJSON();
+				//container.saveBrainJSON();
 				break;
 			case 77: // M
 				//container.saveBrainJSON();
+				break;
+			case 88: // X
+				container.saveWorldJSON();
+				break;
+			case 67: // C
+				container.saveBrainJSON();
 				break;
 			case 49: //1
 				container.switchCursorMode(CURSOR_MODE.SELECT);
@@ -629,7 +745,8 @@ var Env = function() {
 				container.keyMap.right = true;
 				break;
 			case "Shift":
-				container.switchCursorMode();
+				//container.switchCursorMode();
+				container.switchCameraMode();
 				container.keyMap.shift = true;
 				break;
 			case "Control":
@@ -758,6 +875,23 @@ var Env = function() {
 					if(collisionResults[i].object.objectType == OBJECT_TYPE.FLOOR) {
 						clickedPosition = collisionResults[i].point.clone();
 						container.addCar(clickedPosition, container.addCarCursor.cursorHelper.rotation);
+						container.switchCursorMode(CURSOR_MODE.SELECT);
+						break;
+					}
+				}
+				break;
+			}
+			// load car
+			case CURSOR_MODE.LOAD_CAR: {
+				var clickedPosition = null;
+				for(var i = 0; i < collisionResults.length; i++) {
+					if(collisionResults[i].object.objectType == OBJECT_TYPE.FLOOR) {
+						clickedPosition = collisionResults[i].point.clone();
+						if(container.exclusiveParam && container.exclusiveParam.mode == "loadCar") {
+							container.addCarFromJSON(clickedPosition, container.loadCarCursor.cursorHelper.rotation, container.exclusiveParam.jsonText);
+							container.exclusiveParam = null;
+						}
+						container.switchCursorMode(CURSOR_MODE.SELECT);
 						break;
 					}
 				}
@@ -807,7 +941,13 @@ var Env = function() {
 	// function to save brain json
 	container.saveBrainJSON = function() {
 		if(this.cars.length && this.selected != -1) {
-			var blob = new Blob([JSON.stringify(this.cars[this.selected].brain.value_net.toJSON())], {"type" : "text/plain"});
+			var car = this.cars[this.selected];
+			var carJSON = {
+				brain: this.cars[this.selected].brain.value_net.toJSON(),
+				param: car.param,
+			}
+
+			var blob = new Blob([JSON.stringify(carJSON)], {"type" : "text/plain"});
 			window.URL = window.URL || window.webkitURL;
 			window.open(window.URL.createObjectURL(blob), "target");
 		}

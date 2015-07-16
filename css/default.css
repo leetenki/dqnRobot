@@ -143,6 +143,13 @@ img#addCarCursor {
 	top: -4px;
 	right: 10px;
 }
+img#loadCarCursor {
+	width: 30px;
+	mix-blend-mode: lighten;
+	position: absolute;
+	top: -4px;
+	right: 10px;
+}
 img#addObstacleCursor {
 	width: 30px;
 	mix-blend-mode: screen;
@@ -206,6 +213,16 @@ p#inputLabel {
 	padding-bottom: 12%;
 	font-size: 13px;
 	font-weight: bolder;
+}
+
+/*************************** /
+//     donuts chart
+*****************************/
+canvas.donutsChart {
+	position: absolute;
+	left: 50px;
+	bottom: 10px;
+	opacity: 0.5;
 }
 
 

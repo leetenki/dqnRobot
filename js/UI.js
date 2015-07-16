@@ -15,10 +15,13 @@ var UI = function(env) {
 	this.deleteCursorImage = null;
 	this.selectCursorImage = null;
 	this.addCarCursorImage = null;
+	this.loadCarCursorImage = null;
 	this.addObstacleCursorImage = null;
 	this.addItemCursorImage = null;
 	this.barChart = null;
 	this.barChartCanvas = null;
+	this.donutsChart = null;
+	this.donutsChartCanvas = null;
 	this.averageDistanceTag = null;
 	this.switchImage = null;
 	this.env = env;
@@ -42,6 +45,10 @@ var UI = function(env) {
 			case CURSOR_MODE.ADD_CAR: {
 				this.cursorImage.appendChild(this.addCarCursorImage);
 				break;
+			}
+			case CURSOR_MODE.LOAD_CAR: {
+				this.cursorImage.appendChild(this.loadCarCursorImage);
+				break
 			}
 			case CURSOR_MODE.ADD_OBSTACLE: {
 				this.cursorImage.appendChild(this.addObstacleCursorImage);
@@ -94,6 +101,13 @@ var UI = function(env) {
 			this.rewardsTag.innerHTML = "";
 			this.rewardsTag.appendChild(document.createTextNode(car.rewards.toFixed(2)));
 
+			// update rewards graph
+			percentage = Math.min(Math.max(car.rewards, 0), 1);
+			blank = 1 - percentage;
+			this.donutsChart.segments[0].value = percentage;
+			this.donutsChart.segments[1].value = blank;
+			this.donutsChart.update();
+
 			// update barchart label
 			this.averageDistanceTag.innerHTML = "";
 			var averageDistance = 0;
@@ -143,10 +157,10 @@ var UI = function(env) {
 		this.infoTag.appendChild(hrTag);
 
 
-		// cursor
+		// USAGE
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("CURSOR："));
+		spanTag.appendChild(document.createTextNode("USAGE："));
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
 
@@ -158,7 +172,7 @@ var UI = function(env) {
 		spanTag.appendChild(document.createTextNode("SHIFT"));
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("CHANGE MODE"));
+		spanTag.appendChild(document.createTextNode("SWICH CAMERA"));
 		spanTag.setAttribute("class", "usage");
 		spanTag.onclick = function() {
 			container.env.switchCursorMode();
@@ -255,12 +269,12 @@ var UI = function(env) {
 		// save world
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("KEY [J]"));
+		spanTag.appendChild(document.createTextNode("KEY [X]"));
 		spanTag.setAttribute("class", "name");
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "usage");
-		spanTag.appendChild(document.createTextNode("SAVE WORLD"));
+		spanTag.appendChild(document.createTextNode("SAVE STAGE"));
 		spanTag.onclick = function() {
 			container.env.saveWorldJSON();
 		}
@@ -270,12 +284,12 @@ var UI = function(env) {
 		// save brain
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("KEY [B]"));
+		spanTag.appendChild(document.createTextNode("KEY [C]"));
 		spanTag.setAttribute("class", "name");
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "usage");
-		spanTag.appendChild(document.createTextNode("SAVE BRAIN"));
+		spanTag.appendChild(document.createTextNode("SAVE CAR"));
 		spanTag.onclick = function() {
 			container.env.saveBrainJSON();
 		}
@@ -284,7 +298,7 @@ var UI = function(env) {
 
 		// drag and drop usage
 		var pTag = document.createElement("p");
-		pTag.appendChild(document.createTextNode("DRAG & DROP TO READ"));
+		pTag.appendChild(document.createTextNode("DRAG & DROP TO LOAD"));
 		this.infoTag.appendChild(pTag);
 
 		// hr line
@@ -294,7 +308,7 @@ var UI = function(env) {
 
 		// prebuilt world
 		var pTag = document.createElement("p");
-		pTag.appendChild(document.createTextNode("PREBUILT WORLD:"));
+		pTag.appendChild(document.createTextNode("PREBUILT STAGE:"));
 		this.infoTag.appendChild(pTag);
 
 		// stage1
@@ -305,7 +319,7 @@ var UI = function(env) {
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "prebuilt");
-		spanTag.appendChild(document.createTextNode("CURVE COURSE"));
+		spanTag.appendChild(document.createTextNode("SIMPLE COURSE"));
 		spanTag.onclick = function() {
 			container.env.loadFromJSON(prebuiltWorldJSON[0]);
 		}
@@ -319,19 +333,22 @@ var UI = function(env) {
 
 		// prebuilt brain
 		var pTag = document.createElement("p");
-		pTag.appendChild(document.createTextNode("TRAINED BRAIN:"));
+		pTag.appendChild(document.createTextNode("TRAINED CAR:"));
 		this.infoTag.appendChild(pTag);
 
-		// brain 1
+		// car 1
 		var pTag = document.createElement("p");
 		var spanTag = document.createElement("span");
-		spanTag.appendChild(document.createTextNode("BRAIN1"));
+		spanTag.appendChild(document.createTextNode("CAR1"));
 		spanTag.setAttribute("class", "name");
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "prebuilt");
-		spanTag.appendChild(document.createTextNode("FAST MOVE"));
-		spanTag.onclick = function() {
+		spanTag.appendChild(document.createTextNode("PROFESSOR 田胡"));
+		spanTag.onmousedown = function(e) {
+			e.stopPropagation();
+		}
+		spanTag.onclick = function(e) {
 			container.env.loadFromJSON(prebuiltBrainJSON[0]);
 		}
 		pTag.appendChild(spanTag);
@@ -359,6 +376,11 @@ var UI = function(env) {
 		this.addCarCursorImage = document.createElement("img");
 		this.addCarCursorImage.setAttribute("src", CURSOR_MODE.ADD_CAR.TEXTURE);
 		this.addCarCursorImage.setAttribute("id", "addCarCursor");
+
+		// load car cursor image
+		this.loadCarCursorImage = document.createElement("img");
+		this.loadCarCursorImage.setAttribute("src", CURSOR_MODE.LOAD_CAR.TEXTURE);
+		this.loadCarCursorImage.setAttribute("id", "loadCarCursor");
 
 		// add obstacle cursor image
 		this.addObstacleCursorImage = document.createElement("img");
@@ -454,7 +476,44 @@ var UI = function(env) {
 		this.rewardsTag = document.createElement("span");
 		this.rewardsTag.setAttribute("class", "score");
 		pTag.appendChild(this.rewardsTag);
-		this.statusTag.appendChild(pTag);		
+		this.statusTag.appendChild(pTag);	
+
+		// donuts chart
+		this.donutsChartCanvas = document.createElement("canvas");
+		this.donutsChartCanvas.width = 80;
+		this.donutsChartCanvas.height = 80;
+		this.donutsChartCanvas.setAttribute("class", "donutsChart");
+		this.statusTag.appendChild(this.donutsChartCanvas);		
+		var ctx = this.donutsChartCanvas.getContext("2d");
+    	var gradient = ctx.createLinearGradient(0, 0, 0, 100);
+	    gradient.addColorStop(0, 'rgba(100,200,100,0.8)');   
+    	gradient.addColorStop(0.5, 'rgba(100,200,205,0.6)');
+	    gradient.addColorStop(1, 'rgba(0,51,153,0.4)');   
+		// chart label of average distance
+		var segments = [
+		  {
+		    value: 0,
+		    color:"#F7464A",
+		  },
+		  {
+		    value: 1,
+		    color:"rgba(255, 255, 255, 0)"
+		  },
+		];
+		var percentage = 0;
+		var blank = 1;
+		if(car) {
+			percentage = Math.min(Math.max(car.rewards, 0), 1);
+			blank = 1 - percentage;
+			segments[0].value = percentage;
+			segments[1].value = blank;
+		}
+		this.donutsChart = new Chart(ctx).Doughnut(segments, {
+			animateRotate: false,
+			percentageInnerCutout : 50,
+			animateScale : false,
+		});
+
 
 		/******************************
 		//    init barchart tag
