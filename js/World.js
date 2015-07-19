@@ -105,11 +105,12 @@ var World = function() {
 	container.initWorldFromJSON = function(param, json) {
 		// initialize everything
 		container.clearWorld();
-		container.param = param;
-		container.worldSize = param.WORLD_SIZE;
 
 		// parse json data to world data
 		var worldData = JSON.parse(json);
+		container.param = worldData.param;
+		param = worldData.param;
+		container.worldSize = param.WORLD_SIZE;
 
 		// world half size
 		var halfSize = param.WORLD_SIZE / 2;
@@ -592,7 +593,9 @@ var World = function() {
 
 	// function to output everthing to json file
 	container.getJSON = function() {
-		var output = {};
+		var output = {
+			param: container.param
+		};
 		
 		// walls
 		output.walls = new Array();

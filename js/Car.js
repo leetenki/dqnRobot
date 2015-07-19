@@ -46,6 +46,8 @@ var Car = function(param, env) {
 	this.directionVector = new THREE.Vector3(0, 0, 1);
 	this.ID = param.ID;
 	this.command = COMMAND.FORWARD;
+	this.oldWeights = new Array();
+	this.layersNeedsUpdate = false;
 	this.rewards = 0;
 	this.moveSucceeded = true;
 	this.brain = initBrain();
@@ -83,6 +85,15 @@ var Car = function(param, env) {
 	this.mesh.position.y = this.offsetY;
 	this.mesh.objectType = OBJECT_TYPE.CAR;
 
+	// init old weights
+	for(var i = 0; i < 10; i++) {
+		var zeroWeights = new Array();
+		for(var j = 0; j < param.eyeParam.NUM_EYES; j++) {
+			zeroWeights.push(0);
+		}
+		this.oldWeights.push(zeroWeights);
+	}
+
 	/**********************
 	//  function to init brain
 	**********************/
@@ -94,7 +105,7 @@ var Car = function(param, env) {
 		var layer_defs = [];
 		layer_defs.push({type:'input', out_sx:1, out_sy:1, out_depth:network_size});
 		layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
-		layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
+		//layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
 		layer_defs.push({type:'regression', num_neurons:num_actions});
 
 		// by backpropping the temporal difference learning rule.
@@ -275,6 +286,16 @@ var Car = function(param, env) {
 		return this.command;
 	}
 
+	// function to compare two arrays
+	this.compareArrays = function(a1, a2) {
+		for(var i = 0; i < a1.length; i++) {
+			if(a1[i] != a2[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	// function to do action
 	this.act = function(command, delta) {
 		this.command = command;
@@ -301,6 +322,23 @@ var Car = function(param, env) {
 		if(!this.moveSucceeded) {
 			penalty = 1;
 		}
+
+		// copy current layers to old layers
+		// console.log(this.brain.value_net.layers[0].out_act);
+		/*
+		if(this.brain.value_net.layers[0].out_act) {
+			this.layersNeedsUpdate = false;
+			if(this.compareArrays(this.oldWeights[0], this.brain.value_net.layers[0].out_act.w)) {
+				console.log("same");
+			} else {
+				console.log("different");
+				this.oldWeights = new Array();
+				for(var i = 0; i < this.brain.value_net.layers.length; i++) {
+					this.oldWeights.push(this.brain.value_net.layers[i].out_act.w)
+				}
+			}
+		}
+		*/
 
 		// backwards
 		this.rewards = distanceRewards + forwardRewards - penalty;

@@ -4,6 +4,7 @@
 var UI = function(env) {
 	this.infoTag = document.getElementById("info");
 	this.statusTag = document.getElementById("status");
+	this.neuralNetworkContainer = document.getElementById("neuralNetworkContainer");
 	this.barChartContainer = document.getElementById("barChartContainer");
 	this.IDTag = null;
 	this.modeTag = null;
@@ -21,6 +22,8 @@ var UI = function(env) {
 	this.barChart = null;
 	this.barChartCanvas = null;
 	this.donutsChart = null;
+	this.neuralNetwork = null;
+	this.nodesOfLayers = null;
 	this.donutsChartCanvas = null;
 	this.averageDistanceTag = null;
 	this.switchImage = null;
@@ -124,11 +127,55 @@ var UI = function(env) {
 			this.barChart.update();
 
 			// switch image
-		    this.switchImage.css({
-		    	"-webkit-filter": car.mode.switchStyle
+			this.switchImage.css({
+				"-webkit-filter": car.mode.switchStyle
 			});
-		}
 
+			// draw neural network
+			if(car.brain.value_net.layers[0].out_act) {
+				var layers = car.brain.value_net.layers;
+				var nodes = this.neuralNetwork.graph.nodes();
+				var edges = this.neuralNetwork.graph.edges();
+
+				var nodesCnt = 0;
+				for(var i = 0; i < layers.length; i++) {
+					var maximumWeight = {
+						weight: layers[i].out_act.w[0],
+						i: i,
+						j: 0
+					};
+					// update nodes
+					for(j = 0; j < layers[i].out_act.w.length; j++) {
+						if(layers[i].out_act.w[j] >= 0) {
+							nodes[nodesCnt+j].color = "rgba(255, " + (255-Math.floor(layers[i].out_act.w[j]*255)) + ", " + (255-Math.floor(layers[i].out_act.w[j]*255)) + ", 0.4)";
+							if(maximumWeight.weight < layers[i].out_act.w[j]) {
+								maximumWeight = {
+									weight: layers[i].out_act.w[j],
+									i: i, 
+									j: j,
+								};
+							}
+						} else {
+							nodes[nodesCnt+j].color = "rgba(" + (255-Math.floor(layers[i].out_act.w[j]*-128)) + ", 255, 255, 0.4)";
+						}
+						if(this.nodesOfLayers[i][j].edgeIndex) {
+							for(var k = 0; k < this.nodesOfLayers[i][j].edgeIndex.length; k++) {
+								edges[this.nodesOfLayers[i][j].edgeIndex[k]].color = "rgba(255, 255, 255, " + (this.nodesOfLayers[i][j].basicColor) + ")"
+							}
+						}
+					}
+					nodesCnt += layers[i].out_act.w.length;
+
+					// update edges
+					if(this.nodesOfLayers[maximumWeight.i][maximumWeight.j].edgeIndex) {
+						for(var k = 0; k < this.nodesOfLayers[maximumWeight.i][maximumWeight.j].edgeIndex.length; k++) {
+							edges[this.nodesOfLayers[maximumWeight.i][maximumWeight.j].edgeIndex[k]].color = "rgba(255, 255, 255, " + (this.nodesOfLayers[maximumWeight.i][maximumWeight.j].basicColor*6) + ")"
+						}
+					}					
+				}
+				this.neuralNetwork.refresh();
+			}
+		}
 	}
 
 	// initialize all tag
@@ -175,7 +222,7 @@ var UI = function(env) {
 		spanTag.appendChild(document.createTextNode("SWICH CAMERA"));
 		spanTag.setAttribute("class", "usage");
 		spanTag.onclick = function() {
-			container.env.switchCursorMode();
+			container.env.switchCameraMode();
 		}
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
@@ -344,7 +391,7 @@ var UI = function(env) {
 		pTag.appendChild(spanTag);
 		spanTag = document.createElement("span");
 		spanTag.setAttribute("class", "prebuilt");
-		spanTag.appendChild(document.createTextNode("PROFESSOR 田胡"));
+		spanTag.appendChild(document.createTextNode("SUPER CAR"));
 		spanTag.onmousedown = function(e) {
 			e.stopPropagation();
 		}
@@ -353,6 +400,25 @@ var UI = function(env) {
 		}
 		pTag.appendChild(spanTag);
 		this.infoTag.appendChild(pTag);
+
+		// car 2
+		var pTag = document.createElement("p");
+		var spanTag = document.createElement("span");
+		spanTag.appendChild(document.createTextNode("CAR2"));
+		spanTag.setAttribute("class", "name");
+		pTag.appendChild(spanTag);
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "prebuilt");
+		spanTag.appendChild(document.createTextNode("3 EYES"));
+		spanTag.onmousedown = function(e) {
+			e.stopPropagation();
+		}
+		spanTag.onclick = function(e) {
+			container.env.loadFromJSON(prebuiltBrainJSON[1]);
+		}
+		pTag.appendChild(spanTag);
+		this.infoTag.appendChild(pTag);
+
 
 		// hr line
 		var hrTag = document.createElement("hr");
@@ -485,20 +551,20 @@ var UI = function(env) {
 		this.donutsChartCanvas.setAttribute("class", "donutsChart");
 		this.statusTag.appendChild(this.donutsChartCanvas);		
 		var ctx = this.donutsChartCanvas.getContext("2d");
-    	var gradient = ctx.createLinearGradient(0, 0, 0, 100);
-	    gradient.addColorStop(0, 'rgba(100,200,100,0.8)');   
-    	gradient.addColorStop(0.5, 'rgba(100,200,205,0.6)');
-	    gradient.addColorStop(1, 'rgba(0,51,153,0.4)');   
+		var gradient = ctx.createLinearGradient(0, 0, 0, 100);
+		gradient.addColorStop(0, 'rgba(100,200,100,0.8)');   
+		gradient.addColorStop(0.5, 'rgba(100,200,205,0.6)');
+		gradient.addColorStop(1, 'rgba(0,51,153,0.4)');   
 		// chart label of average distance
 		var segments = [
-		  {
-		    value: 0,
-		    color:"#F7464A",
-		  },
-		  {
-		    value: 1,
-		    color:"rgba(255, 255, 255, 0)"
-		  },
+		{
+			value: 0,
+			color:"#F7464A",
+		},
+		{
+			value: 1,
+			color:"rgba(255, 255, 255, 0)"
+		},
 		];
 		var percentage = 0;
 		var blank = 1;
@@ -514,6 +580,127 @@ var UI = function(env) {
 			animateScale : false,
 		});
 
+
+		/***********************************
+		// init neural network information
+		***********************************/
+		this.neuralNetworkContainer.innerHTML = "";
+		spanTag = document.createElement("span");
+		spanTag.setAttribute("class", "neuralNetworkText");
+		spanTag.appendChild(document.createTextNode("NEURAL NETWORK"));
+		this.neuralNetworkContainer.appendChild(spanTag);
+		this.neuralNetwork = null;
+		if(car) {
+			var layers = car.brain.value_net.layers;
+			var maximumLayerLength = 0;
+			for(var i = 0; i < layers.length; i++) {
+				if(layers[i].out_depth > maximumLayerLength) {
+					maximumLayerLength = layers[i].out_depth;
+				}
+			}
+			var height = maximumLayerLength;
+
+			// determine nodes
+			var nodes = new Array();;
+			var nodesOfLayers = new Array();
+			this.nodesOfLayers = nodesOfLayers;
+			var numLayers = layers.length;
+			var stepX = maximumLayerLength * 1.3 / (layers.length);
+			for(var i = 0; i < layers.length; i++) {
+				var nodesOfLayer = new Array();
+				var x = stepX * i;
+				var layer = layers[i];
+				var stepY = height / (layer.out_depth + 2);
+				for(j = 0; j < layer.out_depth; j++) {
+					var node = {
+						id: "node" + i + "-" + j,
+						x: x + (Math.random()) * 3 / 5 * stepX,
+						y: stepY * (j+1),
+						size: 1,
+			        	color: "rgba(255, 255, 255, 0.4)"
+						//borderColor: "#fff",
+					};
+					//node.basicNeuronColor = "rgba(" + Math.floor(i*255/layers.length) + "," + Math.floor(j*255/layer.out_depth) + ",128,0.4)";
+					//node.color = node.basicNeuronColor;
+					nodes.push(node);
+					nodesOfLayer.push(node);
+				}
+				nodesOfLayers.push(nodesOfLayer);
+			}
+
+			// put dummy node
+			nodes.push({
+				id: "dammy1",
+				x: maximumLayerLength * 1.3 - 2,
+				y: maximumLayerLength + 2,
+				size: 1,
+	        	color: "rgba(255, 255, 255, 0.0)"
+			});
+			nodes.push({
+				id: "dummy2",
+				x: -2,
+				y: maximumLayerLength+2,
+				size: 1,
+	        	color: "rgba(255, 255, 255, 0.0)"
+			});
+			nodes.push({
+				id: "dummy3",
+				x: -2,
+				y: 0,
+				size: 1,
+	        	color: "rgba(255, 255, 255, 0.0)"
+			});
+			nodes.push({
+				id: "dummy4",
+				x: maximumLayerLength * 1.3 - 2,
+				y: 0,
+				size: 1,
+	        	color: "rgba(255, 255, 255, 0.0)"
+			});
+
+			// determine edges
+			var edges = new Array();
+			for(var i = 1; i < nodesOfLayers.length; i++) {
+				for(var j = 0; j < nodesOfLayers[i].length; j++) {
+					nodesOfLayers[i][j].edgeIndex = new Array();
+					nodesOfLayers[i][j].basicColor = (0.03 + (Math.pow(maximumLayerLength,2) - nodesOfLayers[i-1].length*nodesOfLayers[i].length) / Math.pow(maximumLayerLength,2) * 0.03);
+					for(var k = 0; k < nodesOfLayers[i-1].length; k++) {
+						var edge = {
+							id: "edge" + i + "-" + j + "-" + k,
+							source: nodesOfLayers[i-1][k].id,
+							target: nodesOfLayers[i][j].id,
+							color: "rgba(255, 255, 255, "+ nodesOfLayers[i][j].basicColor + ")"
+						}
+						nodesOfLayers[i][j].edgeIndex.push(edges.length);
+						edges.push(edge);					
+					}
+				}
+			}
+
+			this.neuralNetwork = new sigma({
+			  graph: {
+			    nodes: nodes,
+			    edges: edges
+			  },
+			  renderer: {
+			    type: 'canvas',
+			    container: 'neuralNetworkContainer'
+			  },
+			  settings: {
+			  	mouseEnabled: false,
+			   	autoRescale: true,
+			   	resizeIgnoreSize: true,
+			   	rescaleIgnoreSize: true,
+			   	autoResize: false, 
+			    defaultNodeType: 'border',
+			    //defaultEdgeType: 'curve',
+			    maxEdgeSize: 0.2,
+			    minEdgeSize: 0.03,
+			    minNodeSize: 0.01,
+			    maxNodeSize: 7,
+			  }
+			});
+		}
 
 		/******************************
 		//    init barchart tag
@@ -536,19 +723,19 @@ var UI = function(env) {
 		this.barChartCanvas.setAttribute("class", "barChart");
 		this.barChartContainer.appendChild(this.barChartCanvas);
 		var ctx = this.barChartCanvas.getContext("2d");
-    	var gradient = ctx.createLinearGradient(0, 0, 0, 100);
-	    gradient.addColorStop(0, 'rgba(100,200,100,0.8)');   
-    	gradient.addColorStop(0.5, 'rgba(100,200,205,0.6)');
-	    gradient.addColorStop(1, 'rgba(0,51,153,0.4)');   
+		var gradient = ctx.createLinearGradient(0, 0, 0, 100);
+		gradient.addColorStop(0, 'rgba(100,200,100,0.8)');   
+		gradient.addColorStop(0.5, 'rgba(100,200,205,0.6)');
+		gradient.addColorStop(1, 'rgba(0,51,153,0.4)');   
 		var data = {
-		    labels: [],
-		    datasets: [
-		        {
-	                fillColor : gradient,
-	                strokeColor : "rgba(151,187,205,1)",
-	 	            data: []
-		        }
-		    ]
+			labels: [],
+			datasets: [
+			{
+				fillColor : gradient,
+				strokeColor : "rgba(151,187,205,1)",
+				data: []
+			}
+			]
 		};
 		var dataLength = 1;
 		if(car) {
@@ -585,49 +772,49 @@ var UI = function(env) {
 		//    init switch button 
 		**************************/
 		$(function() {
-		    container.switchImage = $('img#switch');
-		    container.switchImage.off();
+			container.switchImage = $('img#switch');
+			container.switchImage.off();
 
-		    if(car) {
-			    container.switchImage.css({
-			    	"-webkit-filter": car.mode.switchStyle
-			    });
+			if(car) {
+				container.switchImage.css({
+					"-webkit-filter": car.mode.switchStyle
+				});
 
-			    container.switchImage.hover(
-			        function(){
-			            $(this).stop().animate({
-			                'width':'120px',
-			                'height':'120px',
-			                'marginTop': '-10px',
-			                'marginLeft':'-10px',
-			                'opacity': '0.9'
-			            },300);
-			        },
-			        function () {
-			            $(this).stop().animate({
-			                'width':'100px',
-			                'height':'100px',
-			                'marginTop': '0px',
-			                'marginLeft':'0px',
-			                'opacity': '0.6'
-			            },'fast');
-			        }
-			    ).click(function() {
-		    		var car = container.env.getCarSelected();
-		    		if(car) {
-			    		car.switchMode();
-						container.drawHTML(car);			
-			            $(this).css({
-			            	"-webkit-filter": car.mode.switchStyle
-						});
-			        }
-			    });
-			} else {
-			    container.switchImage.css({
-			    	"-webkit-filter": MODE.NONE.switchStyle
-			    });				
-			}
-		});
+				container.switchImage.hover(
+					function(){
+						$(this).stop().animate({
+							'width':'120px',
+							'height':'120px',
+							'marginTop': '-10px',
+							'marginLeft':'-10px',
+							'opacity': '0.9'
+						},300);
+					},
+					function () {
+						$(this).stop().animate({
+							'width':'100px',
+							'height':'100px',
+							'marginTop': '0px',
+							'marginLeft':'0px',
+							'opacity': '0.6'
+						},'fast');
+					}
+					).click(function() {
+						var car = container.env.getCarSelected();
+						if(car) {
+							car.switchMode();
+							container.drawHTML(car);			
+							$(this).css({
+								"-webkit-filter": car.mode.switchStyle
+							});
+						}
+					});
+				} else {
+					container.switchImage.css({
+						"-webkit-filter": MODE.NONE.switchStyle
+					});				
+				}
+			});
 	}
 
 	return this;	

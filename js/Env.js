@@ -514,6 +514,10 @@ var Env = function() {
 
 	// function to focus on a car selected
 	this.selectCar = function(index) {
+		if(this.selected == index) {
+			return;
+		}
+		
 		// if no index, just swich car
 		if(index == null && this.cars.length > 0) {
 			if(this.selected) {
